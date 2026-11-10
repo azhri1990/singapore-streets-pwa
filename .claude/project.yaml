@@ -1,0 +1,87 @@
+# CCGS project configuration — single source of truth for project settings.
+# See .claude/docs/effects-map.md for full schema.
+
+schema_version: 1
+
+framework:
+  version: 1.3.0
+  last_upgraded: 2026-11-11
+
+# Engine configuration
+engine:
+  name: Web
+  type: Three.js
+  version: r164
+  renderer: WebGPU
+
+# Language and build
+language: TypeScript
+build_system: Vite
+
+# Mobile optimization settings (from the existing Singapore Streets build)
+mobile:
+  touch_target_min: 48
+  pixel_ratio: auto
+  battery_thresholds:
+    - level: low
+      percentage: 15
+      shadows: reduced
+      quality: medium
+    - level: medium
+      percentage: 30
+      shadows: reduced
+      quality: medium
+    - level: high
+      percentage: 50
+      shadows: enabled
+      quality: high
+    - level: ultra
+      percentage: 80
+      shadows: enabled
+      quality: ultra
+
+# Project metadata
+name: Singapore Streets
+short_name: SG Streets
+description: Open-world Three.js game set in Singapore 2026
+
+# Platform settings
+platforms:
+  - web
+  - android (via Capacitor / PWABuilder)
+  - pwa
+
+# Studio mode settings
+modes:
+  rigor: strict
+  automation: enabled
+
+# Mobile optimization systems reference
+systems:
+  - MobileOptimization
+  - MobilePerformanceMonitor
+  - MobileBatteryManager
+  - MobileTouchSystem
+  - MobileAssetStreamer
+  - MobileUISystem
+
+# Age gate configuration
+age_gate:
+  enabled: true
+  requires_click: true
+  content_warning: "This simulation contains realistic gore, violence and sexual content. Players must be 18+ to access."
+
+# APK builder configuration
+apk_builder:
+  tool: InteeBuild
+  github_actions: true
+  no_store_publish: true
+  generate_aab: false
+
+# Feature flags
+features:
+  battery_aware_scaling: true
+  touch_target_enforcement: true
+  performance_throttling: true
+  offline_support: true
+  pwa_install: true

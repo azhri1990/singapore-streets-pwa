@@ -1,0 +1,38 @@
+{
+  "name": "Singapore Streets ⚠️ ADULT GAME",
+  "short_name": "SG Streets - Explicit",
+  "description": "Adult-only GTA:SA inspired Singapore 2026 game with explicit violence, gore, and sexual content. Realistic Singapore crime simulation with HDB void decks, hawker centers, and Singlish NPCs.",
+  "start_url": "/",
+  "display": "fullscreen",
+  "background_color": "#000000",
+  "theme_color": "#ff0000",
+  "orientation": "landscape-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "entertainment", "adult"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Free Roam",
+      "url": "/?mode=freeroam",
+      "description": "Explore Singapore streets freely"
+    },
+    {
+      "name": "Marina Bay",
+      "url": "/?location=marinabay",
+      "description": "Drive through CBD skyline"
+    }
+  ]
+}

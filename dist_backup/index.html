@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a1a2e">
+    <link rel="manifest" href="./assets/manifest-DZN4Bvcp.json">
+    <title>Singapore Streets</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            overflow: hidden;
+            background: #000;
+            font-family: 'Arial', sans-serif;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            color: white;
+        }
+        
+        .logo {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px #00ffff;
+        }
+        
+        .loading-bar {
+            width: 300px;
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        
+        .loading-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffff, #ff00ff);
+            width: 0%;
+            animation: load 2s ease-in-out infinite;
+        }
+        
+        @keyframes load {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+        
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        /* Mobile controls */
+        #mobile-controls {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            #mobile-controls {
+                display: flex;
+            }
+        }
+        
+        /* UI Elements */
+        .hud {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 18px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 100;
+            pointer-events: none;
+        }
+        
+        .hud-item {
+            background: rgba(0,0,0,0.6);
+            padding: 10px 15px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            border-left: 3px solid #00ffff;
+        }
+    </style>
+  <script type="module" crossorigin src="./assets/index-BDrlCH5c.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/three-CGeqZeRz.js">
+  <link rel="modulepreload" crossorigin href="./assets/world-C3j_fBeF.js">
+  <link rel="modulepreload" crossorigin href="./assets/core-A8d7NVrh.js">
+  <link rel="modulepreload" crossorigin href="./assets/ui-IiqegvZQ.js">
+  <link rel="modulepreload" crossorigin href="./assets/systems-CnWkS8xh.js">
+  <link rel="modulepreload" crossorigin href="./assets/entities-zrCH9ED0.js">
+  <link rel="modulepreload" crossorigin href="./assets/combat-CkMb0wNe.js">
+  <link rel="modulepreload" crossorigin href="./assets/gangs-p4zr-7QN.js">
+  <link rel="modulepreload" crossorigin href="./assets/comms-C4eSOgSN.js">
+  <link rel="modulepreload" crossorigin href="./assets/jobs-Df0MLAC7.js">
+</head>
+<body>
+    <!-- Adult content gate - violent gore sexual content restricted -->
+    <div id="loading">
+        <div id="age-gate" style="margin: 40px auto; max-width: 320px; text-align: center; font-size: 16px;">
+            <p style="color:#ffaa00; margin-bottom:15px; font-weight:bold;">ADULT CONTENT</p>
+            <p style="color:#ff9999; margin-bottom:15px;">This simulation contains realistic gore, violence and sexual content.</p>
+            <p style="color:#cccccc;">Players must be 18+ to access.</p>
+            <button id="confirm-18" onclick="document.getElementById('loading').style.display='none'" style="padding:16px 32px; background:#ff0000; color:white; border:0; border-radius:8px; font-size:18px; cursor:pointer; font-weight:bold; margin-top:20px;">I am 18+</button>
+        </div>
+    </div>
+    
+    <div class="hud" style="display:none;">
+        <div class="hud-item">Speed: <span id="speed">0</span> km/h</div>
+        <div class="hud-item">Location: Marina Bay</div>
+    </div>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registered:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            });
+        }
+        
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+        
+        window.addEventListener('appinstalled', () => {
+            deferredPrompt = null;
+        });
+    </script>
+</body>
+</html>
