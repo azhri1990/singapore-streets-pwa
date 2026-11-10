@@ -39,8 +39,8 @@ jobs:
       - name: Generate TWA project
         run: |
           mkdir -p twa && cd twa
-          echo -e "n\n$JAVA_HOME" | bubblewrap init \
-            --manifest=$PWD/manifest.json \
+          echo "y" | bubblewrap init \
+            --manifest=/home/runner/work/singapore-streets-pwa/singapore-streets-pwa/manifest.json \
             --package-name=com.singapurasia.streets \
             --directory=.
       
