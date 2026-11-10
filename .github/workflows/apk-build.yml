@@ -34,7 +34,7 @@ jobs:
         run: |
           mkdir -p twa && cd twa
           echo "y" | bubblewrap init \
-            --manifest=https://raw.githubusercontent.com/${{ github.repository }}/main/manifest.json \
+            --manifest=/home/runner/work/singapore-streets-pwa/singapore-streets-pwa/manifest.json \
             --package-name=com.singapurasia.streets \
             --directory=.
       
