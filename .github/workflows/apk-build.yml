@@ -27,22 +27,53 @@ jobs:
       - name: Build production PWA
         run: npm run build
       
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-      
       - name: Install Bubblewrap
         run: npm install -g @bubblewrap/cli
       
       - name: Generate TWA project
         run: |
           mkdir -p twa && cd twa
-          echo "y" | bubblewrap init \
+          cat > /tmp/bubblewrap-answers.txt << 'EOF'
+          Y
+          /opt/hostedtoolcache/JDK/17.0.11+9/x64
+          Y
+          /opt/android-sdk
+          Y
+          github.com
+          http://localhost:8080
+          Singapore Streets
+          com.singapurasia.streets
+          1
+          1.0
+          standalone
+          portrait
+          #00ffff
+          #04111a
+          http://localhost:8080/icon-512.png
+          http://localhost:8080/icon-512.png
+          #04111a
+          #04111a
+          /home/runner/work/singapore-streets-pwa/singapore-streets-pwa/twa/android-keystore
+          androidkeyalias
+          Y
+          Y
+          Y
+          Y
+          Y
+          Y
+          Y
+          Y
+          EOF
+          cat /tmp/bubblewrap-answers.txt | bubblewrap init \
             --manifest=/home/runner/work/singapore-streets-pwa/singapore-streets-pwa/manifest.json \
             --package-name=com.singapurasia.streets \
             --directory=.
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
       
       - name: Build APK (unsigned Debug)
         run: |
