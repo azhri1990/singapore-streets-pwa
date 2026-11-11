@@ -67,13 +67,20 @@ jobs:
           sha256sum twa/twa-manifest.json > twa/manifest-checksum.txt
           cat twa/manifest-checksum.txt
       
+      - name: Setup Android SDK
+        uses: actions/setup-android@v4
+        with:
+          api-level: 33
+          target: android
+          build-tools: 33.0.2
+      
       - name: Create bubblewrap config to skip interactive prompts
         run: |
           mkdir -p ~/.bubblewrap
           cat > ~/.bubblewrap/config.json << 'EOF'
           {
             "jdkPath": "/opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.21-9/x64",
-            "androidSdkPath": "/usr/local/lib/android/sdk"
+            "androidSdkPath": "${ANDROID_HOME}"
           }
           EOF
           cat ~/.bubblewrap/config.json
@@ -84,11 +91,11 @@ jobs:
       
       - name: Verify APK produced
         run: |
-          ls -la twa/app/build/outputs/apk/debug/*.apk
+          ls -la twa/app/build/outputs/apk/release/*.apk
       
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: singapore-streets-apk
-          path: twa/app/build/outputs/apk/debug/*.apk
+          path: twa/app/build/outputs/apk/release/*.apk
           retention-days: 30
