@@ -69,7 +69,7 @@ jobs:
       
       - name: Build APK (unsigned Debug)
         run: |
-          cd twa && JAVA_HOME=$JAVA_HOME echo -e "n\n" | bubblewrap build --skip-signing
+          cd twa && printf 'n\n/opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.21-9/x64\ny\n/opt/android-sdk\ny\ny\ny\ny\ny\ny\ny\ny\n' | JAVA_HOME=$JAVA_HOME bubblewrap build --skip-signing
       
       - name: Verify APK produced
         run: |
