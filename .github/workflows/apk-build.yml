@@ -67,9 +67,20 @@ jobs:
           sha256sum twa/twa-manifest.json > twa/manifest-checksum.txt
           cat twa/manifest-checksum.txt
       
+      - name: Create bubblewrap config to skip interactive prompts
+        run: |
+          mkdir -p ~/.bubblewrap
+          cat > ~/.bubblewrap/config.json << 'EOF'
+          {
+            "jdkPath": "/opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.21-9/x64",
+            "androidSdkPath": "/usr/local/lib/android/sdk"
+          }
+          EOF
+          cat ~/.bubblewrap/config.json
+      
       - name: Build APK (unsigned Debug)
         run: |
-          cd twa && printf 'n\n/opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.21-9/x64\ny\n/opt/android-sdk\ny\ny\ny\ny\ny\ny\ny\ny\n' | JAVA_HOME=$JAVA_HOME bubblewrap build --skip-signing
+          cd twa && JAVA_HOME=$JAVA_HOME bubblewrap build --skip-signing
       
       - name: Verify APK produced
         run: |
