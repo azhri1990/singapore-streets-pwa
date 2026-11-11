@@ -27,57 +27,49 @@ jobs:
       - name: Build production PWA
         run: npm run build
       
-      - name: Install Bubblewrap
-        run: npm install -g @bubblewrap/cli
-      
-      - name: Generate TWA project
-        run: |
-          mkdir -p twa && cd twa
-          cat > /tmp/bubblewrap-answers.txt << 'EOF'
-          Y
-          /opt/hostedtoolcache/JDK/17.0.11+9/x64
-          Y
-          /opt/android-sdk
-          Y
-          github.com
-          http://localhost:8080
-          Singapore Streets
-          com.singapurasia.streets
-          1
-          1.0
-          standalone
-          portrait
-          #00ffff
-          #04111a
-          http://localhost:8080/icon-512.png
-          http://localhost:8080/icon-512.png
-          #04111a
-          #04111a
-          /home/runner/work/singapore-streets-pwa/singapore-streets-pwa/twa/android-keystore
-          androidkeyalias
-          Y
-          Y
-          Y
-          Y
-          Y
-          Y
-          Y
-          Y
-          EOF
-          cat /tmp/bubblewrap-answers.txt | bubblewrap init \
-            --manifest=/home/runner/work/singapore-streets-pwa/singapore-streets-pwa/manifest.json \
-            --package-name=com.singapurasia.streets \
-            --directory=.
-      
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
       
+      - name: Install Bubblewrap
+        run: npm install -g @bubblewrap/cli
+      
+      - name: Create TWA manifest manually
+        run: |
+          mkdir -p twa
+          cat > twa/twa-manifest.json << 'TWAEOF'
+          {
+            "packageId": "com.singapurasia.streets",
+            "appVersionCode": 1,
+            "appVersionName": "1.0",
+            "host": "github.com",
+            "startUrl": "http://localhost:8080",
+            "name": "Singapore Streets",
+            "launcherName": "SG Streets",
+            "display": "standalone",
+            "orientation": "portrait",
+            "themeColor": "#00ffff",
+            "themeColorDark": "#00ffff",
+            "navigationColor": "#000000",
+            "navigationColorDark": "#000000",
+            "backgroundColor": "#04111a",
+            "backgroundColorDark": "#04111a",
+            "iconUrl": "http://localhost:8080/icon-512.png",
+            "maskableIconUrl": "http://localhost:8080/icon-512.png",
+            "signingKey": {
+              "path": "/home/runner/work/singapore-streets-pwa/singapore-streets-pwa/twa/android-keystore",
+              "alias": "androidkeyalias"
+            }
+          }
+          TWAEOF
+          sha256sum twa/twa-manifest.json > twa/manifest-checksum.txt
+          cat twa/manifest-checksum.txt
+      
       - name: Build APK (unsigned Debug)
         run: |
-          cd twa && JAVA_HOME=$JAVA_HOME bubblewrap build --debug
+          cd twa && JAVA_HOME=$JAVA_HOME bubblewrap build --skip-signing
       
       - name: Verify APK produced
         run: |
@@ -88,54 +80,4 @@ jobs:
         with:
           name: singapore-streets-apk
           path: twa/app/build/outputs/apk/debug/*.apk
-          retention-days: 30
-
-  # Alternative: Capacitor (Ionic's native wrapper)
-  build-apk-capacitor:
-    name: Build APK (Capacitor)
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
-      
-      - name: Build production PWA
-        run: npm run build
-      
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v2
-      
-      - name: Install Capacitor CLI
-        run: npm install -g @capacitor/cli
-      
-      - name: Initialize Capacitor Android project
-        run: |
-          npx cap init "Singapore Streets" "com.singapurasia.streets" --web-dir=dist
-          npx cap add android
-      
-      - name: Copy web assets
-        run: npx cap copy android
-      
-      - name: Sync Capacitor
-        run: npx cap sync android
-      
-      - name: Build APK (Debug)
-        run: |
-          cd android
-          ./gradlew assembleDebug
-      
-      - name: Upload Capacitor APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: singapore-streets-apk-capacitor
-          path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
