@@ -69,7 +69,7 @@ jobs:
       
       - name: Build APK (unsigned Debug)
         run: |
-          cd twa && JAVA_HOME=$JAVA_HOME bubblewrap build --skip-signing
+          cd twa && JAVA_HOME=$JAVA_HOME echo -e "n\n" | bubblewrap build --skip-signing
       
       - name: Verify APK produced
         run: |
