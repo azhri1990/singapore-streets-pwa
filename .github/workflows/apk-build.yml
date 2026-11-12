@@ -100,7 +100,7 @@ jobs:
           export ANDROID_HOME="$HOME/android-sdk"
           export PATH="$PATH:$HOME/android-sdk/cmdline-tools/latest/bin"
           cd twa
-          printf 'n\n' | bubblewrap build --release
+          printf 'n\n%s\n' "$JAVA_HOME" | bubblewrap build --release
 
       - name: Verify APK produced
         run: |
