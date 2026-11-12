@@ -111,7 +111,7 @@ jobs:
           CONFEOF
           cat ~/.bubblewrap/config.json
           cd twa
-          printf 'Y\n' | bubblewrap build --release
+          printf 'Y\n' | BUBBLEWRAP_KEYSTORE_PASSWORD=android BUBBLEWRAP_KEY_PASSWORD=android bubblewrap build --release
 
       - name: Verify APK produced
         run: |
