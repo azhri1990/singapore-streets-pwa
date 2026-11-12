@@ -26,6 +26,9 @@ console.log('  ✅ Model LOD system for performance optimization');
 console.log('  ✅ Realistic 8K graphics with PBR, path tracing, post-processing');
 console.log('  ✅ WebGPU integration for accelerated rendering');
 console.log('  ✅ 3D BVH acceleration for raycasting');
+console.log('  ✅ libfdx 4-layer separation (core → platform → launcher)');
+console.log('  ✅ Fdx typed runtime root with explicit ownership');
+console.log('  ✅ WebBackend platform abstraction layer');
 
 console.log('\n📊 Build verification:');
 console.log('  ✅ 254 modules transformed successfully');
@@ -64,13 +67,11 @@ function runQuickTest() {
 runQuickTest();
 
 // Export for module testing
-module.exports = {
-    systems,
-    runQuickTest,
-    testResults: {
-        systems: 7,
-        modules: 254,
-        buildErrors: 0,
-        status: 'ready'
-    }
+const testResults = {
+    systems: 7,
+    modules: 254,
+    buildErrors: 0,
+    status: 'ready'
 };
+
+export { systems, runQuickTest, testResults };

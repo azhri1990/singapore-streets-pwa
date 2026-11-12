@@ -38,20 +38,25 @@ jobs:
 
       - name: Generate signing key
         run: |
+          mkdir -p twa
           keytool -genkey -v -keystore twa/android-keystore \
             -alias androidkeyalias -keyalg RSA -keysize 2048 \
             -validity 10000 -storepass android -keypass android \
             -dname "CN=Singapore Streets, O=SG Streets, C=SG"
 
+      - name: Copy PWA files to TWA directory
+        run: |
+          cp -r dist/* twa/
+          cp -r dist/.* twa/ 2>/dev/null || true
+
       - name: Create TWA manifest
         run: |
-          mkdir -p twa
           cat > twa/twa-manifest.json << 'TWAEOF'
           {
             "packageId": "com.singapurasia.streets",
             "appVersionCode": 1,
             "appVersionName": "1.0",
-            "host": "github.com",
+            "host": "singapore-streets.github.io",
             "startUrl": "./",
             "name": "Singapore Streets",
             "launcherName": "SG Streets",
