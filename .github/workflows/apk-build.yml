@@ -10,33 +10,40 @@ jobs:
   build-apk:
     name: Build APK (Bubblewrap TWA builder)
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      
+
       - name: Build production PWA
         run: npm run build
-      
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-      
+
       - name: Install Bubblewrap
         run: npm install -g @bubblewrap/cli
-      
-      - name: Create TWA manifest manually
+
+      - name: Generate signing key
+        run: |
+          keytool -genkey -v -keystore twa/android-keystore \
+            -alias androidkeyalias -keyalg RSA -keysize 2048 \
+            -validity 10000 -storepass android -keypass android \
+            -dname "CN=Singapore Streets, O=SG Streets, C=SG"
+
+      - name: Create TWA manifest
         run: |
           mkdir -p twa
           cat > twa/twa-manifest.json << 'TWAEOF'
@@ -45,36 +52,33 @@ jobs:
             "appVersionCode": 1,
             "appVersionName": "1.0",
             "host": "github.com",
-            "startUrl": "http://localhost:8080",
+            "startUrl": "./",
             "name": "Singapore Streets",
             "launcherName": "SG Streets",
             "display": "standalone",
-            "orientation": "portrait",
+            "orientation": "landscape",
             "themeColor": "#00ffff",
             "themeColorDark": "#00ffff",
             "navigationColor": "#000000",
             "navigationColorDark": "#000000",
             "backgroundColor": "#04111a",
             "backgroundColorDark": "#04111a",
-            "iconUrl": "http://localhost:8080/icon-512.png",
-            "maskableIconUrl": "http://localhost:8080/icon-512.png",
             "signingKey": {
-              "path": "/home/runner/work/singapore-streets-pwa/singapore-streets-pwa/twa/android-keystore",
+              "path": "twa/android-keystore",
               "alias": "androidkeyalias"
             }
           }
           TWAEOF
-          sha256sum twa/twa-manifest.json > twa/manifest-checksum.txt
-          cat twa/manifest-checksum.txt
-      
+          cat twa/twa-manifest.json
+
       - name: Setup Android SDK
         uses: actions/setup-android@v4
         with:
           api-level: 33
           target: android
           build-tools: 33.0.2
-      
-      - name: Create bubblewrap config to skip interactive prompts
+
+      - name: Create bubblewrap config
         run: |
           mkdir -p ~/.bubblewrap
           cat > ~/.bubblewrap/config.json << 'EOF'
@@ -84,15 +88,17 @@ jobs:
           }
           EOF
           cat ~/.bubblewrap/config.json
-      
-      - name: Build APK (unsigned Debug)
+
+      - name: Build APK (Release)
         run: |
-          cd twa && JAVA_HOME=$JAVA_HOME bubblewrap build --skip-signing
-      
+          cd twa
+          JAVA_HOME=$JAVA_HOME bubblewrap build --release
+
       - name: Verify APK produced
         run: |
+          find twa -name "*.apk" -type f
           ls -la twa/app/build/outputs/apk/release/*.apk
-      
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
