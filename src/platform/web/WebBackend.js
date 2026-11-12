@@ -6,12 +6,19 @@
  */
 
 export class WebBackend {
-    constructor(fdx) {
+    constructor(fdx, options = {}) {
         this._fdx = fdx;
-        this._initPromise = this._initAsync();
+        this._options = options;
+        this._initPromise = null;
     }
 
     fdx() { return this._fdx; }
+
+    async init() {
+        if (this._initPromise) return this._initPromise;
+        this._initPromise = this._initAsync();
+        await this._initPromise;
+    }
 
     async _initAsync() {
         // Initialize WebGL context (handled by SceneGraph)
@@ -20,6 +27,7 @@ export class WebBackend {
         this._initKeyboard();
         this._initTouch();
         this._initGamepad();
+        console.log('[WebBackend] initialized');
     }
 
     _setupEventListeners() {

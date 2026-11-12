@@ -78,7 +78,7 @@ export class SingaporeGame {
     constructor(fdx) {
         console.log('[SingaporeGame] Starting initialization...');
         this.fdx = fdx;  // Explicit runtime root (libfdx pattern)
-        this.scene = fdx.scene();  // Use Fdx-owned scene
+        this.scene = fdx?.scene()?.scene || new THREE.Scene();  // Use Fdx-owned scene, fallback for backward compat
         this.scene.background = new THREE.Color(0x87CEEB);
         console.log('[SingaporeGame] Scene created');
         

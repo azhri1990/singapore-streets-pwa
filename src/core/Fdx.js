@@ -31,6 +31,7 @@ export class Fdx {
 
     // Core accessors (typed, explicit ownership)
     backend() { return this._backend; }
+    setBackend(backend) { this._backend = backend; return this; }
     assets() { return this._assets; }
     input() { return this._input; }
     scene() { return this._scene; }
