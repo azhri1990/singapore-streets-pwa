@@ -241,27 +241,27 @@ libfdx/
 ## Implementation Roadmap for Singapore Streets
 
 ### Phase 1: Settings Frontend (FrostFrontend pattern)
-- [ ] Create web-based settings overlay with 5 tabs
-- [ ] Implement controller remapping with localStorage persistence
-- [ ] Build touch layout editor (drag-drop, save/cancel/reset)
+- [x] Create web-based settings overlay with 5 tabs
+- [x] Implement controller remapping with localStorage persistence
+- [x] Build touch layout editor (drag-drop, save/cancel/reset)
 - [ ] Add speaker test utility
 - [ ] Add update checker (PWA version check)
 
 ### Phase 2: Touch Controls (Skull-Kid pattern)
-- [ ] Implement joystick/D-pad overlay for mobile
-- [ ] Add position persistence across sessions
-- [ ] Add adjustable opacity/size
-- [ ] Add mirror mode for left-handed users
+- [x] Implement joystick/D-pad overlay for mobile
+- [x] Add position persistence across sessions
+- [x] Add adjustable opacity/size
+- [x] Add mirror mode for left-handed users
 
 ### Phase 3: Engine Architecture (libfdx pattern)
-- [ ] Refactor to 4-layer separation (core → extensions → platform → entry)
-- [ ] Implement typed runtime root
-- [ ] Remove global services, make state explicit
-- [ ] Add provider abstraction layer
-- [ ] Audit frame/render/input loops for allocations
+- [x] Refactor to 4-layer separation (core → extensions → platform → entry)
+- [x] Implement typed runtime root (Fdx)
+- [x] Remove global services, make state explicit
+- [x] Add provider abstraction layer (as() escape hatch)
+- [x] Audit frame/render/input loops for allocations
 
 ### Phase 4: Build & CI
-- [ ] Add GitHub Actions workflow for APK generation
+- [x] Add GitHub Actions workflow for APK generation
 - [ ] Add PowerShell build scripts for local releases
 - [ ] Add update manifest JSON
 - [ ] Pin Java/Gradle versions
