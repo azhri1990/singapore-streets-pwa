@@ -14,6 +14,7 @@ import { SingaporeAtmosphere } from '../improvements/SingaporeAtmosphere.js';
 import { ProceduralCBD } from '../improvements/ProceduralCBD.js';
 import { MobileControls, MobileUI } from '../improvements/MobileControls.js';
 import { MobileGTAControls, isMobileDevice } from '../improvements/MobileGTAControls.js';
+import { SettingsOverlay } from '../ui/SettingsOverlay.js';
 import { ControllerSupport } from '../improvements/ControllerSupport.js';
 import { SpotifyIntegration } from '../systems/SpotifyIntegration.js';
 import { SingaporeFoodSystem } from '../systems/SingaporeFoodSystem.js';
@@ -312,6 +313,8 @@ export class SingaporeGame {
         this.phoneNotifications = new PhoneNotificationMirror(this);
         this.foodSystem = new SingaporeFoodSystem(this);
         this.mrtSystem = new MRTTravelSystem(this);
+        this.settingsOverlay = new SettingsOverlay(this);
+        this.settingsOverlay = new SettingsOverlay(this);
         
         // Lazy loaded systems (initialized on first use)
         this._lazySystems = {
