@@ -76,28 +76,28 @@ jobs:
           TWAEOF
           cat twa/twa-manifest.json
 
-      - name: Setup Android SDK
-        uses: actions/setup-android@v4
-        with:
-          api-level: 33
-          target: android
-          build-tools: 33.0.2
-
-      - name: Create bubblewrap config
+      - name: Install Android SDK Command-line Tools
         run: |
-          mkdir -p ~/.bubblewrap
-          cat > ~/.bubblewrap/config.json << 'EOF'
-          {
-            "jdkPath": "/opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.21-9/x64",
-            "androidSdkPath": "${ANDROID_HOME}"
-          }
-          EOF
-          cat ~/.bubblewrap/config.json
+          ANDROID_ROOT=$HOME/android-sdk
+          mkdir -p "$ANDROID_ROOT/cmdline-tools"
+          cd "$ANDROID_ROOT/cmdline-tools"
+          curl -o sdk.zip "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+          unzip -o sdk.zip -d latest
+          export PATH="$PATH:$ANDROID_ROOT/cmdline-tools/latest/bin"
+          export ANDROID_SDK_ROOT="$ANDROID_ROOT"
+          echo "ANDROID_SDK_ROOT=$ANDROID_ROOT" >> $GITHUB_ENV
+          echo "ANDROID_HOME=$ANDROID_ROOT" >> $GITHUB_ENV
+          echo "$ANDROID_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          yes | sdkmanager --sdk_root="$ANDROID_ROOT" "platforms;android-33" "build-tools;33.0.2"
 
       - name: Build APK (Release)
         run: |
+          export ANDROID_SDK_ROOT="$HOME/android-sdk"
+          export ANDROID_HOME="$HOME/android-sdk"
+          export JAVA_HOME="$JAVA_HOME"
+          export PATH="$PATH:$HOME/android-sdk/cmdline-tools/latest/bin"
           cd twa
-          JAVA_HOME=$JAVA_HOME bubblewrap build --release
+          bubblewrap build --release
 
       - name: Verify APK produced
         run: |
