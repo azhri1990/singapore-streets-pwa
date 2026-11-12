@@ -75,9 +75,10 @@ import { ArcadeVehicleController } from '../systems/ArcadeVehicleController.js';
 import { DrivingHUD } from '../systems/DrivingHUD.js';
 
 export class SingaporeGame {
-    constructor() {
+    constructor(fdx) {
         console.log('[SingaporeGame] Starting initialization...');
-        this.scene = new THREE.Scene();
+        this.fdx = fdx;  // Explicit runtime root (libfdx pattern)
+        this.scene = fdx.scene();  // Use Fdx-owned scene
         this.scene.background = new THREE.Color(0x87CEEB);
         console.log('[SingaporeGame] Scene created');
         

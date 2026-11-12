@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, landscape, minimum-scale=1.0">
     <meta name="theme-color" content="#1a1a2e">
-    <link rel="manifest" href="./assets/manifest-DZN4Bvcp.json">
+    <link rel="manifest" href="/assets/manifest-DZN4Bvcp.json">
     <title>Singapore Streets</title>
     <style>
         * {
@@ -103,9 +103,17 @@
             border-left: 3px solid #00ffff;
         }
     </style>
-  <link rel="modulepreload" crossorigin href="./assets/three.webgpu-BVZoFFun.js">
-  <link rel="modulepreload" crossorigin href="./assets/webgpu-CCuw_oKS.js">
-  <script type="module" crossorigin src="./assets/index-pd4Ch7Ec.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/three-CGeqZeRz.js">
+  <link rel="modulepreload" crossorigin href="./assets/world-C3j_fBeF.js">
+  <link rel="modulepreload" crossorigin href="./assets/core-A8d7NVrh.js">
+  <link rel="modulepreload" crossorigin href="./assets/ui-IiqegvZQ.js">
+  <link rel="modulepreload" crossorigin href="./assets/systems-CnWkS8xh.js">
+  <link rel="modulepreload" crossorigin href="./assets/entities-zrCH9ED0.js">
+  <link rel="modulepreload" crossorigin href="./assets/combat-CkMb0wNe.js">
+  <link rel="modulepreload" crossorigin href="./assets/gangs-p4zr-7QN.js">
+  <link rel="modulepreload" crossorigin href="./assets/comms-C4eSOgSN.js">
+  <link rel="modulepreload" crossorigin href="./assets/jobs-Df0MLAC7.js">
+  <script type="module" crossorigin src="/assets/index-unEwknJT.js"></script>
 </head>
 <body>
     <!-- Adult content gate - violent gore sexual content restricted -->
@@ -127,7 +135,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
+                navigator.serviceWorker.register('/sw.js')
                     .then(registration => {
                         console.log('Service Worker registered:', registration.scope);
                     })
