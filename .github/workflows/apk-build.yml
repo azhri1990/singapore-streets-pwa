@@ -88,25 +88,11 @@ jobs:
           rmdir latest/cmdline-tools 2>/dev/null || true
           export PATH="$PATH:$ANDROID_ROOT/cmdline-tools/latest/bin"
           export ANDROID_SDK_ROOT="$ANDROID_ROOT"
+          export ANDROID_HOME="$ANDROID_ROOT"
           echo "ANDROID_SDK_ROOT=$ANDROID_ROOT" >> $GITHUB_ENV
           echo "ANDROID_HOME=$ANDROID_ROOT" >> $GITHUB_ENV
           echo "$ANDROID_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
           yes | sdkmanager --sdk_root="$ANDROID_ROOT" "platforms;android-33" "build-tools;33.0.2"
-
-      - name: Configure Bubblewrap
-        run: |
-          mkdir -p ~/.bubblewrap
-          cat > ~/.bubblewrap/config.json << 'EOF'
-          {
-            "jdkPath": "/opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.21-9/x64",
-            "androidSdkPath": "/home/runner/android-sdk"
-          }
-          EOF
-          cat ~/.bubblewrap/config.json
-          echo "=== SDK Structure ==="
-          ls -la /home/runner/android-sdk/ || echo "SDK root not found"
-          ls -la /home/runner/android-sdk/platforms/ || echo "platforms not found"
-          ls -la /home/runner/android-sdk/build-tools/ || echo "build-tools not found"
 
       - name: Build APK (Release)
         run: |
