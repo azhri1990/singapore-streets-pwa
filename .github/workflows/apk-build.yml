@@ -94,7 +94,7 @@ jobs:
           echo "$ANDROID_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
           # Bubblewrap validates SDK path requires bin/ or tools/ at SDK root
           mkdir -p "$ANDROID_ROOT/bin" "$ANDROID_ROOT/tools"
-          yes | sdkmanager --sdk_root="$ANDROID_ROOT" "platform-tools;latest" "build-tools;36.1.0" "platforms;android-33"
+          yes | sdkmanager --sdk_root="$ANDROID_ROOT" "platform-tools" "build-tools;36.1.0" "platforms;android-33"
 
       - name: Build APK (Release)
         run: |
