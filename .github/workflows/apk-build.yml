@@ -103,6 +103,10 @@ jobs:
           }
           EOF
           cat ~/.bubblewrap/config.json
+          echo "=== SDK Structure ==="
+          ls -la /home/runner/android-sdk/ || echo "SDK root not found"
+          ls -la /home/runner/android-sdk/platforms/ || echo "platforms not found"
+          ls -la /home/runner/android-sdk/build-tools/ || echo "build-tools not found"
 
       - name: Build APK (Release)
         run: |
