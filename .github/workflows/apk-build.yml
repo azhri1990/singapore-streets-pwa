@@ -94,7 +94,7 @@ jobs:
           echo "$ANDROID_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
           yes | sdkmanager --sdk_root="$ANDROID_ROOT" "platforms;android-33" "build-tools;33.0.2"
 
-            - name: Configure Bubblewrap
+      - name: Configure Bubblewrap
         run: |
           mkdir -p ~/.bubblewrap
           cat > ~/.bubblewrap/config.json << 'EOF'
