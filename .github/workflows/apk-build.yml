@@ -93,13 +93,24 @@ jobs:
           echo "$ANDROID_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
           yes | sdkmanager --sdk_root="$ANDROID_ROOT" "platforms;android-33" "build-tools;33.0.2"
 
+      - name: Configure Bubblewrap
+        run: |
+          mkdir -p ~/.bubblewrap
+          cat > ~/.bubblewrap/config.json << 'EOF'
+          {
+            "jdkPath": "/opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.21-9/x64",
+            "androidSdkPath": "/home/runner/android-sdk"
+          }
+          EOF
+          cat ~/.bubblewrap/config.json
+
       - name: Build APK (Release)
         run: |
           export ANDROID_SDK_ROOT="$HOME/android-sdk"
           export ANDROID_HOME="$HOME/android-sdk"
           export PATH="$PATH:$HOME/android-sdk/cmdline-tools/latest/bin"
           cd twa
-          bubblewrap build --release
+          printf 'n\n' | bubblewrap build --release
 
       - name: Verify APK produced
         run: |
