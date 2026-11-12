@@ -99,8 +99,17 @@ jobs:
           export ANDROID_SDK_ROOT="$HOME/android-sdk"
           export ANDROID_HOME="$HOME/android-sdk"
           export PATH="$PATH:$HOME/android-sdk/cmdline-tools/latest/bin"
+          mkdir -p ~/.bubblewrap
+          cat > ~/.bubblewrap/config.json << 'CONFEOF'
+          {
+            "jdkPath": "$JAVA_HOME",
+            "androidSdkPath": "$ANDROID_SDK_ROOT",
+            "jdkVersion": 17
+          }
+          CONFEOF
+          cat ~/.bubblewrap/config.json
           cd twa
-          printf 'n\n%s\n' "$JAVA_HOME" | bubblewrap build --release
+          bubblewrap build --release
 
       - name: Verify APK produced
         run: |
