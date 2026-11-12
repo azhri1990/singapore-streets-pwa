@@ -68,6 +68,7 @@ jobs:
             "navigationColorDark": "#000000",
             "backgroundColor": "#04111a",
             "backgroundColorDark": "#04111a",
+            "iconUrl": "https://example.com/icon.png",
             "signingKey": {
               "path": "twa/android-keystore",
               "alias": "androidkeyalias"
