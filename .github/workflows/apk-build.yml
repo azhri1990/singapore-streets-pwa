@@ -93,31 +93,14 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_ROOT" >> $GITHUB_ENV
           echo "$ANDROID_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
           yes | sdkmanager --sdk_root="$ANDROID_ROOT" "platforms;android-33" "build-tools;33.0.2"
-          # Verify SDK installation
-          echo "=== Verifying SDK installation ==="
-          if [ -d "$ANDROID_ROOT/platforms/android-33" ] && [ -d "$ANDROID_ROOT/build-tools/33.0.2" ]; then
-            echo "✓ SDK platforms and build-tools installed successfully"
-          else
-            echo "✗ SDK installation verification failed"
-            ls -la "$ANDROID_ROOT" || echo "SDK root not found"
-            exit 1
-          fi
 
-      - name: Configure Bubblewrap
+      - name: Build APK (Release)
         run: |
-          mkdir -p ~/.bubblewrap
-          cat > ~/.bubblewrap/config.json << 'EOF'
-          {
-            "jdkPath": "/opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.21-9/x64",
-            "androidSdkPath": "/home/runner/android-sdk"
-          }
-          EOF
-          echo "=== Bubblewrap Config ==="
-          cat ~/.bubblewrap/config.json
-          echo "=== SDK Structure ==="
-          ls -la /home/runner/android-sdk/ || echo "SDK root not found"
-          ls -la /home/runner/android-sdk/platforms/ || echo "platforms not found"
-          ls -la /home/runner/android-sdk/build-tools/ || echo "build-tools not found"
+          export ANDROID_SDK_ROOT="$HOME/android-sdk"
+          export ANDROID_HOME="$HOME/android-sdk"
+          export PATH="$PATH:$HOME/android-sdk/cmdline-tools/latest/bin"
+          cd twa
+          printf 'n\n' | bubblewrap build --release
 
       - name: Verify APK produced
         run: |
