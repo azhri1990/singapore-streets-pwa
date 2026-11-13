@@ -59,14 +59,45 @@ jobs:
           fi
           echo "KEYSTORE_PASSWORD=$STORE_PASS" >> "$GITHUB_ENV"
           echo "KEY_PASSWORD=$KEY_PASS" >> "$GITHUB_ENV"
-          keytool -list -v -keystore twa/android-keystore \
+          FINGERPRINT=$(keytool -list -v -keystore twa/android-keystore \
             -alias androidkeyalias -storepass "$STORE_PASS" \
-            | awk '/SHA256:/{print}'
+            | awk '/SHA256:/{print $NF}' | tr -d ' ')
+          echo "KEYSTORE_SHA256=$FINGERPRINT" >> "$GITHUB_ENV"
+          mkdir -p public/.well-known
+          cat > public/.well-known/assetlinks.json << ASLEOF
+          [
+            {
+              "relation": [
+                "delegate_permission/common.handle_all_urls",
+                "delegate_permission/common.get_login_creds"
+              ],
+              "target": {
+                "namespace": "android_app",
+                "package_name": "com.singapurasia.streets",
+                "sha256_cert_fingerprints": [
+                  "$FINGERPRINT"
+                ]
+              }
+            }
+          ]
+          ASLEOF
+          cat public/.well-known/assetlinks.json
+          echo "FINGERPRINT=$FINGERPRINT" >> "$GITHUB_ENV"
 
       - name: Copy PWA files to TWA directory
         run: |
           cp -r dist/* twa/
           cp -r dist/.* twa/ 2>/dev/null || true
+          # Include public/ assets (manifest, sw, icons) that vite copies to dist/
+          if [ -d public ]; then
+            find public -mindepth 1 -maxdepth 1 -exec cp -r {} twa/ \; 2>/dev/null || true
+          fi
+          mkdir -p twa/.well-known
+          if [ -f public/.well-known/assetlinks.json ]; then
+            cp public/.well-known/assetlinks.json twa/.well-known/assetlinks.json
+            echo "assetlinks.json included:"
+            cat twa/.well-known/assetlinks.json
+          fi
 
       - name: Create TWA manifest
         run: |
