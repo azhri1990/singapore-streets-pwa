@@ -114,6 +114,8 @@ jobs:
           cd twa
           # Regenerate the Android project from twa-manifest.json without version prompt
           BUBBLEWRAP_KEYSTORE_PASSWORD=android BUBBLEWRAP_KEY_PASSWORD=android bubblewrap update --skipVersionUpgrade
+          # Fix bubblewrap-generated build.gradle: trailing comma on enableNotifications
+          sed -i 's/enableNotifications: ,/enableNotifications: false,/' app/build.gradle
           # Build release APK (checksum now exists so no prompts)
           BUBBLEWRAP_KEYSTORE_PASSWORD=android BUBBLEWRAP_KEY_PASSWORD=android bubblewrap build --release
 
