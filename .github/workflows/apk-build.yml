@@ -70,6 +70,7 @@ jobs:
             "backgroundColorDark": "#04111a",
             "enableNotifications": false,
             "splashScreenFadeOutDuration": 300,
+            "minSdkVersion": 24,
             "iconUrl": "http://127.0.0.1:8123/icon.png",
             "signingKey": {
               "path": "android-keystore",
