@@ -21,6 +21,10 @@ export class ControllerSupport {
         this.lastHapticTime = 0;
         this.hapticCooldown = 50; // ms between haptic updates
         
+        // WebHID device for direct DualSense access (light bar, advanced haptics)
+        this.hidDevice = null;
+        this.hidReportId = 1;
+        
         // Light bar state
         this.lightBarColor = { r: 0, g: 255, b: 255 }; // default cyan (Singapore theme)
         this.lightBarMode = 'gameState'; // 'gameState' | 'solid' | 'pulse'
@@ -31,6 +35,7 @@ export class ControllerSupport {
         
         this.setupControllerEvents();
         this.setupGamepadAPI();
+        this.setupWebHID();
     }
     
     setupControllerEvents() {
@@ -69,6 +74,72 @@ export class ControllerSupport {
                 }
             }
         }, 1000);
+    }
+    
+    async setupWebHID() {
+        // Request DualSense via WebHID for advanced features (light bar, haptics)
+        if (!navigator.hid) {
+            console.log('[ControllerSupport] WebHID API not available (some browsers)')
+            return
+        }
+        
+        try {
+            this.hidDevice = await navigator.hid.requestDevice({
+                vendorId: 0xps5, // Sony ID
+                productId: 0x0904, // DualSense
+            })
+            
+            // Verify it's a DualSense
+            const productName = await this.hidDevice.getProductName()
+            console.log('[ControllerSupport] WebHID DualSense acquired:', productName)
+            
+            // Set up event listeners for HID events
+            this.hidDevice.onconnectedstatechange = async (e) => {
+                console.log('[ControllerSupport] HID device connected state:', e.connected)
+                this.isDualSense = e.connected
+            }
+            
+            // Light bar control: HID Report 0x06, Data = RGB (3 bytes)
+            this.setLightBarColor = (r, g, b) => {
+                const data = new Uint8Array([0x06, r, g, b])
+                this.hidDevice.sendReport(0x01, data).catch(err => {
+                    console.warn('[ControllerSupport] Failed to set light bar:', err)
+                })
+            }
+            
+            // Advanced haptic effects: HID Report 0x08, Data = intensity (1 byte)
+            this.triggerAdvancedHaptics = async (effect, params = {}) => {
+                let reportId = 0x08
+                let data
+                
+                switch (effect) {
+                    case 'click':
+                        data = new Uint8Array([reportId, 0x01, Math.round(params.intensity * 255) || 255])
+                        break
+                    case 'rumble':
+                        data = new Uint8Array([reportId, 0x02, Math.round(params.low || 0) * 255, Math.round(params.high || 255) * 255, params.duration || 100])
+                        break
+                    case 'triggerClick':
+                        data = new Uint8Array([reportId, 0x03, params.trigger === 'right' ? 0x01 : 0x02, params.intensity ? Math.round(params.intensity * 255) : 255])
+                        break
+                    case 'triggerEffect':
+                        data = new Uint8Array([reportId, 0x04, params.trigger === 'right' ? 0x01 : 0x02, params.mode || 0, params.strength ? Math.round(params.strength * 255) : 255])
+                        break
+                    default:
+                        return
+                }
+                
+                try {
+                    await this.hidDevice.sendReport(this.hidReportId, data)
+                } catch (err) {
+                    console.warn('[ControllerSupport] Failed to send haptic report:', err)
+                }
+            }
+            
+            console.log('[ControllerSupport] WebHID setup complete')
+        } catch (err) {
+            console.warn('[ControllerSupport] WebHID setup failed (user denied):', err)
+        }
     }
     
     // Detect DualSense and initialize haptic actuators
@@ -114,6 +185,19 @@ export class ControllerSupport {
         if (now - this.lastHapticTime < this.hapticCooldown) return;
         this.lastHapticTime = now;
         
+        // Try WebHID advanced haptics first
+        if (this.hidDevice) {
+            try {
+                await this.hidDevice.sendReport(0x08, new Uint8Array([
+                    0x02,
+                    Math.round(strongMagnitude * 255),
+                    Math.round(weakMagnitude * 255),
+                    duration
+                ]))
+            } catch (_) {}
+        }
+        
+        // Fallback to gamepad vibration
         try {
             await this.vibrationActuator.pulse(strongMagnitude, duration);
             // weakMagnitude not directly supported in pulse(), but some browsers accept second param
@@ -255,9 +339,15 @@ export class ControllerSupport {
     setLightBarColor(r, g, b) {
         this.lightBarColor = { r: Math.round(r), g: Math.round(g), b: Math.round(b) };
         
-        // Note: Web API doesn't yet have standard light bar control
-        // This is stored for when browser support lands or for native wrapper use
-        // Some browsers expose via gamepad.extensions?.lightBar
+        // Try WebHID first (direct access)
+        if (this.hidDevice) {
+            try {
+                this.hidDevice.sendReport(0x01, new Uint8Array([0x06, r, g, b]))
+            } catch (_) {}
+            return
+        }
+        
+        // Fallback to gamepad extensions API
         if (this.controller && this.controller.extensions?.lightBar) {
             try {
                 this.controller.extensions.lightBar.setColor(r, g, b);

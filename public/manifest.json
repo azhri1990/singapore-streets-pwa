@@ -1,12 +1,47 @@
 {
   "name": "Singapore Streets",
   "short_name": "SG Streets",
-  "description": "Open-world Three.js game set in Singapore 2026",
+  "description": "An original open-world game inspired by GTA: San Andreas, set in Singapore with authentic local architecture, vehicles, and road infrastructure.",
   "start_url": "./",
   "display": "fullscreen",
   "orientation": "landscape",
   "background_color": "#04111a",
   "theme_color": "#00ffff",
+  "display_override": [
+    "fullscreen",
+    "standalone",
+    "minimal-ui"
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "singapore",
+      "url": "/?game=%s"
+    }
+  ],
+  "share_target": {
+    "action": "/",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "sharefile",
+          "accept": ["image/*", "application/pdf", "text/*"]
+        }
+      ]
+    }
+  },
+  "file_handlers": [
+    {
+      "action": "/",
+      "accept": {
+        "image/*": [".sgmap", ".png", ".jpg", ".jpeg"]
+      }
+    }
+  ],
   "icons": [
     {
       "src": "icon-192.png",
@@ -21,6 +56,24 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["games"],
-  "screenshots": []
+  "categories": ["games", "entertainment"],
+  "screenshots": [
+    {
+      "src": "screenshot-1.png",
+      "sizes": "1280x720",
+      "type": "image/png"
+    },
+    {
+      "src": "screenshot-2.png",
+      "sizes": "1280x720",
+      "type": "image/png"
+    }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": [
+    {
+      "platform": "play",
+      "id": "com.singapurasia.streets"
+    }
+  ]
 }

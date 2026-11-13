@@ -25,7 +25,14 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Build production PWA
-        run: npm run build
+        run: |
+          npm run build
+          SIZE=$(du -k dist | cut -f1)
+          echo "Bundle size: $SIZE KB"
+          if [ $SIZE -gt 500 ]; then
+            echo "::error::Bundle size exceeds 500KB limit ($SIZE KB)"
+            exit 1
+          fi
 
       - name: Setup Java
         uses: actions/setup-java@v4

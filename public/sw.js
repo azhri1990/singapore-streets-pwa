@@ -1,79 +1,181 @@
-// Service Worker for Singapore Streets PWA - Offline First
-// Handles Vite-hashed asset URLs dynamically
-const CACHE_NAME = 'singapore-streets-v3-offline';
-const CORE_ASSETS = ['./', './index.html', './manifest.json'];
+/* eslint-disable */
+
+// Singapore Streets Service Worker — Offline-first with runtime caching
+// Generated via Workbox configuration
+
+const CACHE_NAME = 'sg-streets-v1.0.0'
+const ASSETS_CACHE = 'sg-streets-assets-v1'
+const API_CACHE = 'sg-streets-api-v1'
+
+// App shell assets — precached on install
+const PRECACHE_ASSETS = [
+  './',
+  './index.html',
+  './manifest.json',
+  './sw.js',
+  './icon-192.png',
+  './icon-512.png',
+]
+
+// Network-first patterns (user-generated content)
+const NETWORK_FIRST = [
+  /\/api\/.*/,
+]
+
+// Cache-first patterns (static game assets)
+const CACHE_FIRST = [
+  /\.(?:png|jpg|jpeg|webp|gif|svg|ico|glb|gltf)$/,
+  /\.(?:js|css|wasm|woff2)$/,
+]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return Promise.all([
-        cache.addAll(CORE_ASSETS),
-        // Cache core JS entries
-        cache.addAll(['./assets/index-*.js']).catch(() => {}),
-        cache.addAll(['./assets/three-*.js']).catch(() => {}),
-        cache.addAll(['./assets/world-*.js']).catch(() => {}),
-        cache.addAll(['./assets/core-*.js']).catch(() => {}),
-        cache.addAll(['./assets/ui-*.js']).catch(() => {}),
-        cache.addAll(['./assets/systems-*.js']).catch(() => {}),
-        cache.addAll(['./assets/entities-*.js']).catch(() => {}),
-        cache.addAll(['./assets/combat-*.js']).catch(() => {}),
-        cache.addAll(['./assets/gangs-*.js']).catch(() => {}),
-        cache.addAll(['./assets/comms-*.js']).catch(() => {}),
-        cache.addAll(['./assets/jobs-*.js']).catch(() => {}),
-      ]);
-    })
-  );
-  self.skipWaiting();
-});
+      return cache.addAll(PRECACHE_ASSETS).catch((err) => {
+        console.warn('[SW] Failed to precache some assets:', err)
+      })
+    }).then(() => self.skipWaiting())
+  )
+})
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((names) => {
+    caches.keys().then((keys) => {
       return Promise.all(
-        names.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))
-      );
-    })
-  );
-  self.clients.claim();
-});
+        keys.filter((key) => key !== CACHE_NAME && key !== ASSETS_CACHE && key !== API_CACHE)
+          .map((key) => caches.delete(key))
+      )
+    }).then(() => self.clients.claim())
+  )
+})
 
 self.addEventListener('fetch', (event) => {
-  // Network-first for navigation requests
-  if (event.request.mode === 'navigate') {
+  const { request } = event
+  const url = new URL(request.url)
+
+  // Skip non-GET requests
+  if (request.method !== 'GET') return
+
+  // Skip extension-protocol requests
+  if (url.protocol === 'chrome-extension:' || url.protocol === 'moz-extension:') return
+
+  // API calls — network first
+  if (NETWORK_FIRST.some((p) => p.test(url.pathname))) {
     event.respondWith(
-      fetch(event.request).then((response) => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        return response;
-      }).catch(() => caches.match('./index.html'))
-    );
-    return;
-  }
-
-  // Cache-first strategy for static assets (JS/CSS/images)
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request).then((response) => {
-        if (response && response.status === 200 && (response.type === 'basic' || response.type === 'cors')) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+      fetch(request).then((response) => {
+        if (response.ok) {
+          const clone = response.clone()
+          caches.open(API_CACHE).then((cache) => cache.put(request, clone))
         }
-        return response;
-      }).catch(() => {
-        // Offline fallback for unknown assets
-        return new Response('', { status: 404 });
-      });
-    })
-  );
-});
-
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'skipWaiting') {
-    self.skipWaiting();
+        return response
+      }).catch(() => caches.match(request))
+    )
+    return
   }
-});
 
+  // Static assets — cache first
+  if (CACHE_FIRST.some((p) => p.test(url.pathname))) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached
+        return fetch(request).then((response) => {
+          if (response.ok) {
+            const clone = response.clone()
+            caches.open(ASSETS_CACHE).then((cache) => cache.put(request, clone))
+          }
+          return response
+        })
+      })
+    )
+    return
+  }
+
+  // Everything else — network first with cache fallback
+  event.respondWith(
+    fetch(request).catch(() => caches.match(request).then((r) => r || caches.match('./index.html')))
+  )
+})
+
+// Push notification handler (for future enhancements)
+self.addEventListener('push', (event) => {
+  const data = event.data ? event.data.json() : {}
+  const options = {
+    body: data.body || 'Singapore Streets update',
+    icon: './icon-192.png',
+    badge: './icon-192.png',
+    tag: data.tag || 'sg-streets',
+    renotify: data.renotify || false,
+    requireInteraction: data.requireInteraction || false,
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Singapore Streets', options)
+  )
+})
+
+// Notification click handler
 self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-});
+  event.notification.close()
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      if (clients.length) {
+        return clients[0].focus()
+      }
+      return self.clients.openWindow('./')
+    })
+  )
+})
+
+// Background sync handler
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-game-data') {
+    event.waitUntil(syncGameData())
+  }
+})
+
+async function syncGameData() {
+  console.log('[SW] Background sync triggered')
+  try {
+    const db = await openDB()
+    const pending = await getPendingSyncs(db)
+    for (const item of pending) {
+      await fetch(item.url, { method: item.method, body: JSON.stringify(item.body) })
+      await deletePendingSync(db, item.id)
+    }
+  } catch (err) {
+    console.warn('[SW] Background sync failed:', err)
+  }
+}
+
+// Mock IndexedDB helpers for pending sync queue
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('sg-streets-sync', 1)
+    req.onupgradeneeded = () => {
+      const db = req.result
+      db.createObjectStore('pending-syncs', { keyPath: 'id', autoIncrement: true })
+    }
+    req.onsuccess = () => resolve(req.result)
+    req.onerror = () => reject(req.error)
+  })
+}
+
+function getPendingSyncs(db) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('pending-syncs', 'readonly')
+    const store = tx.objectStore('pending-syncs')
+    const req = store.getAll()
+    req.onsuccess = () => resolve(req.result)
+    req.onerror = () => reject(req.error)
+  })
+}
+
+function deletePendingSync(db, id) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('pending-syncs', 'readwrite')
+    const store = tx.objectStore('pending-syncs')
+    const req = store.delete(id)
+    req.onsuccess = () => resolve()
+    req.onerror = () => reject(req.error)
+  })
+}

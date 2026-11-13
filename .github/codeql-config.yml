@@ -1,0 +1,23 @@
+# CodeQL Configuration for Singapore Streets
+# Queries to run beyond the defaults
+
+name: "Singapore Streets CodeQL Config"
+
+queries:
+  - uses: security-extended
+  - uses: security-and-quality
+
+paths-ignore:
+  - node_modules
+  - dist
+  - dist_backup
+  - dist_assets_backup
+  - .git
+  - .claude
+
+# Security considerations
+# - WebGL/WebGPU context loss handlers
+# - Service worker cleanup on unload
+# - IndexedDB transactional integrity
+# - Event listener cleanup on scene teardown
+# - Memory leak detection (renderers, geometries, materials, textures)
