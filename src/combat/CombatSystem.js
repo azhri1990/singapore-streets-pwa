@@ -110,6 +110,19 @@ export class CombatSystem {
             weapon.ammo--;
         }
         
+        // DualSense haptic feedback on attack
+        if (this.game.controllerSupport?.isDualSense) {
+            if (this.currentWeapon === 'fists' || this.currentWeapon === 'bat') {
+                this.game.controllerSupport.triggerCrashHaptic(0.4);
+            } else if (this.currentWeapon === 'shotgun') {
+                this.game.controllerSupport.triggerExplosionHaptic(0.6);
+            } else if (this.currentWeapon === 'sniper') {
+                this.game.controllerSupport.triggerExplosionHaptic(0.8);
+            } else {
+                this.game.controllerSupport.triggerGunshotHaptic(0.5);
+            }
+        }
+        
         // Melee attack
         if (this.currentWeapon === 'fists' || this.currentWeapon === 'bat') {
             this.meleeAttack(weapon);

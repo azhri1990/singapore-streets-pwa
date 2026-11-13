@@ -209,6 +209,10 @@ export class EnhancedWantedSystem {
         if (this.game.showNotification) {
             this.game.showNotification('🚨 WANTED', `Wanted level: ${n} stars`);
         }
+        // DualSense haptic feedback on wanted level
+        if (this.game.controllerSupport?.isDualSense && n > 0) {
+            this.game.controllerSupport.triggerWantedLevelHaptic(n);
+        }
         this.updateUI();
         if (n === 0) this.clearCops();
     }
