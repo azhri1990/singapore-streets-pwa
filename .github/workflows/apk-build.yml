@@ -34,15 +34,34 @@ jobs:
           java-version: '17'
 
       - name: Install Bubblewrap
-        run: npm install -g @bubblewrap/cli
+        run: npm install -g @bubblewrap/cli@1.27.0
 
-      - name: Generate signing key
+      - name: Restore signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           mkdir -p twa
-          keytool -genkey -v -keystore twa/android-keystore \
-            -alias androidkeyalias -keyalg RSA -keysize 2048 \
-            -validity 10000 -storepass android -keypass android \
-            -dname "CN=Singapore Streets, O=SG Streets, C=SG"
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "Restoring persisted signing keystore from secrets"
+            printf '%s' "$KEYSTORE_BASE64" | base64 -d > twa/android-keystore
+            STORE_PASS="$KEYSTORE_PASSWORD"
+            KEY_PASS="$KEY_PASSWORD"
+          else
+            echo "::warning::No KEYSTORE_BASE64 secret — generating an ephemeral key. APKs from this run cannot update previously installed builds."
+            STORE_PASS=android
+            KEY_PASS=android
+            keytool -genkey -v -keystore twa/android-keystore \
+              -alias androidkeyalias -keyalg RSA -keysize 2048 \
+              -validity 10000 -storepass "$STORE_PASS" -keypass "$KEY_PASS" \
+              -dname "CN=Singapore Streets, O=SG Streets, C=SG"
+          fi
+          echo "KEYSTORE_PASSWORD=$STORE_PASS" >> "$GITHUB_ENV"
+          echo "KEY_PASSWORD=$KEY_PASS" >> "$GITHUB_ENV"
+          keytool -list -v -keystore twa/android-keystore \
+            -alias androidkeyalias -storepass "$STORE_PASS" \
+            | awk '/SHA256:/{print}'
 
       - name: Copy PWA files to TWA directory
         run: |
@@ -51,11 +70,14 @@ jobs:
 
       - name: Create TWA manifest
         run: |
-          cat > twa/twa-manifest.json << 'TWAEOF'
+          # Bump appVersionCode so each CI run installs over the previous build
+          APP_VERSION_CODE="${{ github.run_number }}"
+          APP_VERSION_NAME="1.0"
+          cat > twa/twa-manifest.json << TWAEOF
           {
             "packageId": "com.singapurasia.streets",
-            "appVersionCode": 1,
-            "appVersion": "1.0",
+            "appVersionCode": $APP_VERSION_CODE,
+            "appVersion": "$APP_VERSION_NAME",
             "host": "singapore-streets.github.io",
             "startUrl": "./",
             "name": "Singapore Streets",
@@ -80,7 +102,15 @@ jobs:
           TWAEOF
           cat twa/twa-manifest.json
 
+      - name: Cache Android SDK
+        id: android-sdk-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.HOME }}/android-sdk
+          key: android-sdk-linux-cmdline-11076708-build-tools-36.1.0-platform-36
+
       - name: Install Android SDK Command-line Tools
+        if: steps.android-sdk-cache.outputs.cache-hit != 'true'
         run: |
           ANDROID_ROOT=$HOME/android-sdk
           mkdir -p "$ANDROID_ROOT/cmdline-tools/latest"
@@ -98,7 +128,8 @@ jobs:
           echo "$ANDROID_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
           # Bubblewrap validates SDK path requires bin/ or tools/ at SDK root
           mkdir -p "$ANDROID_ROOT/bin" "$ANDROID_ROOT/tools"
-          yes | sdkmanager --sdk_root="$ANDROID_ROOT" "platform-tools" "build-tools;36.1.0" "platforms;android-33"
+          # compileSdk/targetSdk in the generated project is 36
+          yes | sdkmanager --sdk_root="$ANDROID_ROOT" "platform-tools" "build-tools;36.1.0" "platforms;android-36"
 
       - name: Build APK (Release)
         run: |
@@ -159,8 +190,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: singapore-streets-apk
-          path: |
-            twa/app-release-signed.apk
-            twa/app/build/outputs/apk/release/*.apk
+          path: twa/app-release-signed.apk
           if-no-files-found: error
           retention-days: 30
