@@ -142,7 +142,7 @@ jobs:
 
       - name: Cache Android SDK
         id: android-sdk-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ env.HOME }}/android-sdk
           key: android-sdk-linux-cmdline-11076708-build-tools-36.1.0-platform-36
