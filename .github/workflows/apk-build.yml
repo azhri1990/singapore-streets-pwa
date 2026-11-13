@@ -68,9 +68,9 @@ jobs:
             "navigationColorDark": "#000000",
             "backgroundColor": "#04111a",
             "backgroundColorDark": "#04111a",
-            "iconUrl": "https://example.com/icon.png",
+            "iconUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Flag_of_Singapore.svg/120px-Flag_of_Singapore.svg.png",
             "signingKey": {
-              "path": "twa/android-keystore",
+              "path": "android-keystore",
               "alias": "androidkeyalias"
             }
           }
@@ -112,12 +112,15 @@ jobs:
           CONFEOF
           cat ~/.bubblewrap/config.json
           cd twa
-          printf 'Y\n' | BUBBLEWRAP_KEYSTORE_PASSWORD=android BUBBLEWRAP_KEY_PASSWORD=android bubblewrap build --release
+          # Regenerate the Android project from twa-manifest.json without version prompt
+          BUBBLEWRAP_KEYSTORE_PASSWORD=android BUBBLEWRAP_KEY_PASSWORD=android bubblewrap update --skipVersionUpgrade
+          # Build release APK (checksum now exists so no prompts)
+          BUBBLEWRAP_KEYSTORE_PASSWORD=android BUBBLEWRAP_KEY_PASSWORD=android bubblewrap build --release
 
       - name: Verify APK produced
         run: |
-          find twa -name "*.apk" -type f
-          ls -la twa/app/build/outputs/apk/release/*.apk
+          find twa -name "*.apk" -type f || true
+          ls -la twa/app/build/outputs/apk/release/*.apk || exit 1
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
