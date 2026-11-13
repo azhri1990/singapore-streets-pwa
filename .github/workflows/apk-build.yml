@@ -55,7 +55,7 @@ jobs:
           {
             "packageId": "com.singapurasia.streets",
             "appVersionCode": 1,
-            "appVersionName": "1.0",
+            "appVersion": "1.0",
             "host": "singapore-streets.github.io",
             "startUrl": "./",
             "name": "Singapore Streets",
@@ -69,6 +69,7 @@ jobs:
             "backgroundColor": "#04111a",
             "backgroundColorDark": "#04111a",
             "enableNotifications": false,
+            "splashScreenFadeOutDuration": 300,
             "iconUrl": "http://127.0.0.1:8123/icon.png",
             "signingKey": {
               "path": "android-keystore",
