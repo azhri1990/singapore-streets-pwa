@@ -68,7 +68,8 @@ jobs:
             "navigationColorDark": "#000000",
             "backgroundColor": "#04111a",
             "backgroundColorDark": "#04111a",
-            "iconUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Flag_of_Singapore.svg/120px-Flag_of_Singapore.svg.png",
+            "enableNotifications": false,
+            "iconUrl": "http://127.0.0.1:8123/icon.png",
             "signingKey": {
               "path": "android-keystore",
               "alias": "androidkeyalias"
@@ -112,21 +113,52 @@ jobs:
           CONFEOF
           cat ~/.bubblewrap/config.json
           cd twa
+          # Generate a real 1200x1200 PNG icon locally (no network / no rate limits)
+          python3 - << 'PYEOF'
+          import zlib, struct
+          w = h = 1200
+          r, g, b = 0, 0xff, 0xff  # cyan theme (#00ffff)
+          row = b'\x00' + bytes([r, g, b]) * w
+          raw = row * h
+          def chunk(t, d):
+              c = t + d
+              return struct.pack('>I', len(d)) + c + struct.pack('>I', zlib.crc32(c) & 0xffffffff)
+          png = b'\x89PNG\r\n\x1a\n'
+          png += chunk(b'IHDR', struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0))
+          png += chunk(b'IDAT', zlib.compress(raw, 9))
+          png += chunk(b'IEND', b'')
+          open('icon.png', 'wb').write(png)
+          PYEOF
+          file icon.png
+          # Serve the icon over localhost so bubblewrap can fetch it reliably
+          python3 -m http.server 8123 --bind 127.0.0.1 >/dev/null 2>&1 &
+          ICON_SERVER_PID=$!
+          for _ in $(seq 1 20); do
+            curl -sf http://127.0.0.1:8123/icon.png -o /dev/null && break
+            sleep 0.5
+          done
           # Regenerate the Android project from twa-manifest.json without version prompt
           BUBBLEWRAP_KEYSTORE_PASSWORD=android BUBBLEWRAP_KEY_PASSWORD=android bubblewrap update --skipVersionUpgrade
-          # Fix bubblewrap-generated build.gradle: trailing comma on enableNotifications
-          sed -i 's/enableNotifications: ,/enableNotifications: false,/' app/build.gradle
+          # Safety net: fix any empty enableNotifications value left by the template
+          sed -i -E 's/enableNotifications: *,/enableNotifications: false,/' app/build.gradle
+          grep -n "enableNotifications:" app/build.gradle || true
           # Build release APK (checksum now exists so no prompts)
           BUBBLEWRAP_KEYSTORE_PASSWORD=android BUBBLEWRAP_KEY_PASSWORD=android bubblewrap build --release
+          kill "$ICON_SERVER_PID" 2>/dev/null || true
 
       - name: Verify APK produced
         run: |
+          echo "=== all APK files ==="
           find twa -name "*.apk" -type f || true
-          ls -la twa/app/build/outputs/apk/release/*.apk || exit 1
+          # bubblewrap produces the final signed APK at twa/app-release-signed.apk
+          ls -la twa/app-release-signed.apk || ls -la twa/app/build/outputs/apk/release/*.apk || exit 1
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: singapore-streets-apk
-          path: twa/app/build/outputs/apk/release/*.apk
+          path: |
+            twa/app-release-signed.apk
+            twa/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
           retention-days: 30
