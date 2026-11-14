@@ -227,6 +227,17 @@ jobs:
           # bubblewrap produces the final signed APK at twa/app-release-signed.apk
           ls -la twa/app-release-signed.apk || ls -la twa/app/build/outputs/apk/release/*.apk || exit 1
 
+      - name: Export signing key (first-run only)
+        if: ${{ !secrets.KEYSTORE_BASE64 }}
+        run: |
+          # On the first run (no persisted keystore secret) export the generated key
+          # so it can be downloaded, base64-encoded, and stored as KEYSTORE_BASE64.
+          # Subsequent runs restore it from the secret and skip this step.
+          base64 -w0 twa/android-keystore > /tmp/keystore.b64
+          echo "KEYSTORE_BASE64_SIZE=$(wc -c < /tmp/keystore.b64)" bytes
+          keytool -list -v -keystore twa/android-keystore             -alias androidkeyalias -storepass "$KEYSTORE_PASSWORD"             | awk '/SHA256:/{print "SHA256=" $NF}' | tr -d ' ' > /tmp/fingerprint.txt
+          cat /tmp/fingerprint.txt
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
@@ -234,3 +245,14 @@ jobs:
           path: twa/app-release-signed.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Upload keystore artifact (first-run only)
+        if: ${{ !secrets.KEYSTORE_BASE64 }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-keystore-export
+          path: |
+            /tmp/keystore.b64
+            /tmp/fingerprint.txt
+          if-no-files-found: error
+          retention-days: 5
