@@ -122,7 +122,9 @@ export class SingaporeGame {
         this.realisticGraphics = new RealisticGraphics(this);
         this.progression = new ProgressionSystem(this);
         this.progression = new ProgressionSystem(this);
-        console.log('[SingaporeGame] RealisticGraphics initialized');
+        this.audioManager = new AudioManager();
+        this.audioManager.initializeAudio();
+        console.log('[SingaporeGame] AudioManager initialized');
         this.spatialHash = new SpatialHashGrid(10);
         this.eventBus = new EventBus();
         this.tuning = TUNING;
@@ -540,12 +542,19 @@ export class SingaporeGame {
     }
 
     async toggleRadio() {
-        const commentary = await this.aiGameMaster.generateRadioCommentary({
-            location: 'Marina Bay',
-            time: new Date().getHours(),
-            weather: this.player.currentWeather
-        });
-        this.showNotification('📻 RADIO', commentary);
+        const stations = this.audioManager ? Object.keys(this.audioManager.radioStations) : [];
+        if (!stations.length) return;
+
+        let current = this.audioManager ? this.audioManager.currentStation : null;
+        let nextIdx = stations.indexOf(current);
+
+        // Cycle to next station
+        nextIdx = (nextIdx + 1) % stations.length;
+        const stationId = stations[nextIdx];
+
+        const station = this.audioManager.radioStations[stationId];
+        this.audioManager.toggleRadio(stationId);
+        this.showNotification('📻 RADIO', `Tuned to ${station.name} (${station.frequency})`);
     }
 
     showNotification(title, message) {
@@ -1069,6 +1078,14 @@ export class SingaporeGame {
             this.aiMissionDirector.checkAndGenerateMissions(this.player);
         }
         
+        // Update audio based on wanted level
+        if (this.wantedSystem && this.audioManager) {
+            const stars = this.wantedSystem.getStars();
+            if (stars >= 1) {
+                this.audioManager.playPoliceSirens();
+            }
+        }
+        
         this.updateMinimap();
         
         // Add debug overlay to show FPS
@@ -1079,8 +1096,13 @@ export class SingaporeGame {
             }
         }
         
-        // Render the scene
-        this.renderer.render(this.scene, this.camera);
+        // Render the scene (with post-processing if quality preset enables it)
+        const quality = this.qualityManager?.get?.() || {};
+        if (quality.postProcessing && this.realisticGraphics?.composer) {
+            this.realisticGraphics.composer.render();
+        } else {
+            this.renderer.render(this.scene, this.camera);
+        }
     }
 
     destroy() {

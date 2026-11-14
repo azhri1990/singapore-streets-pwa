@@ -41,7 +41,9 @@ export class RealisticGraphics {
 
         this.setupRenderer();
         this.setupLighting();
-        this.setupPostProcessing();
+        if (this.game.qualityManager?.get()?.postProcessing) {
+            this.setupPostProcessing();
+        }
         this.setupEnvironment();
         this.setupLOD();
         this.setupShadows();
@@ -146,6 +148,7 @@ export class RealisticGraphics {
 
     setupPostProcessing() {
         const scene = this.game.scene;
+        const camera = this.game.camera;
         const renderer = this.game.renderer;
 
         // EffectComposer
@@ -153,7 +156,7 @@ export class RealisticGraphics {
         this.composer.setSize(window.innerWidth, window.innerHeight);
 
         // Render Pass
-        this.renderPass = new RenderPass(scene, renderer);
+        this.renderPass = new RenderPass(scene, camera);
         this.composer.addPass(this.renderPass);
 
         // Bloom
@@ -166,7 +169,7 @@ export class RealisticGraphics {
         this.composer.addPass(this.bloomPass);
 
         // SSAO
-        this.ssaoPass = new SSAOPass(scene, renderer, 2.0);
+        this.ssaoPass = new SSAOPass(scene, camera, window.innerWidth, window.innerHeight);
         this.composer.addPass(this.ssaoPass);
 
         // SMAA antialiasing

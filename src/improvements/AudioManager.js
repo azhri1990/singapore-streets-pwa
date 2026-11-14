@@ -82,14 +82,85 @@ export class AudioManager {
     }
     
     playHawkerAmbience() {
-        // Ambient sounds for hawker centers
-        const sounds = ['sizzle', 'chop', 'talk', 'clink'];
-        sounds.forEach(s => console.log(`Playing ${s} sound`));
+        if (!this.audioContext) return;
+        // Ambient hawker center noise: light pink-ish noise via bandpass noise + bursts
+        const bufferSize = this.audioContext.sampleRate * 0.8;
+        const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * 0.02;
+        }
+        const noise = this.audioContext.createBufferSource();
+        noise.buffer = buffer;
+        const filter = this.audioContext.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 400;
+        filter.Q.value = 0.5;
+        const gain = this.audioContext.createGain();
+        gain.gain.value = 0.08;
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.audioContext.destination);
+        noise.start();
+        noise.stop(this.audioContext.currentTime + 0.8);
+    }
+    
+    playSiren() {
+        this.playPoliceSirens();
     }
     
     playPoliceSirens() {
-        // Police siren pattern
-        console.log('Police siren activated');
+        if (!this.audioContext) return;
+        if (this.sirenOscillator) return; // Already playing
+        
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        const filter = this.audioContext.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 800;
+        filter.Q.value = 1;
+        
+        osc.type = 'sawtooth';
+        osc.frequency.value = 600;
+        gain.gain.value = 0.05;
+        
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.audioContext.destination);
+        
+        osc.start();
+        this.sirenOscillator = osc;
+        this.sirenGain = gain;
+        this.sirenFilter = filter;
+        
+        // Siren sweep pattern
+        const sweep = () => {
+            const t = this.audioContext.currentTime;
+            osc.frequency.setValueAtTime(600, t);
+            osc.frequency.linearRampToValueAtTime(1000, t + 0.5);
+            osc.frequency.linearRampToValueAtTime(600, t + 1.0);
+            gain.gain.setValueAtTime(0.05, t);
+            gain.gain.linearRampToValueAtTime(0.0, t + 0.9);
+        };
+        sweep();
+        osc.stop(this.audioContext.currentTime + 0.9);
+        this.sirenTimer = setInterval(() => {
+            sweep();
+            osc.stop(this.audioContext.currentTime + 0.9);
+            osc.start(this.audioContext.currentTime + 0.9);
+        }, 2000);
+    }
+    
+    stopPoliceSirens() {
+        if (this.sirenTimer) clearInterval(this.sirenTimer);
+        if (this.sirenOscillator) {
+            try { this.sirenOscillator.stop(); } catch (e) {}
+            this.sirenOscillator = null;
+        }
+        this.sirenTimer = null;
+        if (this.sirenGain) {
+            try { this.sirenGain.gain.setTargetAtTime(0, this.audioContext.currentTime, 0.05); } catch (e) {}
+        }
     }
     
     toggleRadio(stationId) {
@@ -102,8 +173,20 @@ export class AudioManager {
         this.currentStation = stationId;
         const station = this.radioStations[stationId];
         
+        // Play a subtle "tuning in" chime
+        if (this.audioContext) {
+            const osc = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = 880;
+            gain.gain.value = 0.03;
+            osc.connect(gain);
+            gain.connect(this.audioContext.destination);
+            osc.start();
+            osc.stop(this.audioContext.currentTime + 0.15);
+        }
+        
         console.log(`Tuned to ${station.name} - ${station.frequency}`);
-        // In production, would stream actual audio
     }
     
     stopRadio() {
