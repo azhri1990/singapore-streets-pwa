@@ -1,0 +1,13 @@
+[{
+  "relation": [
+    "delegate_permission/common.handle_all_urls",
+    "delegate_permission/common.get_login_creds"
+  ],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.singapurasia.streets",
+    "sha256_cert_fingerprints": [
+      "4A:F5:B0:A5:72:D7:A6:56:D0:B1:F1:7C:47:A0:24:61:E0:5B:84:B5:23:7A:7B:99:82:03:70:B8:89:E9:09:6E"
+    ]
+  }
+}]
