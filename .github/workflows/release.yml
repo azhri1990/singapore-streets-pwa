@@ -44,9 +44,8 @@ jobs:
         id: version
         run: |
           # Use conventional commits to auto-increment version
-          npx --yes -p conventional-commits-parser@3.0.0 \
+          npx --yes -p conventional-commits-parser@5.0.0 \
             -- node -e "
-            const { parse } = require('conventional-commits-parser');
             const { execSync } = require('child_process');
             const log = execSync('git log --pretty=format:\"%s\" origin/main..HEAD').toString().trim();
             const commits = log.split('\n').filter(Boolean);
