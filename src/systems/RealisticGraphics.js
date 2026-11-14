@@ -52,7 +52,7 @@ export class RealisticGraphics {
         await loadWebGPUPathTracer();
         if (!WebGPUPathTracer) return;
         try {
-            const { WebGPURenderer } = await import('three/webgpu');
+            const { WebGPURenderer } = await import(/* @vite-ignore */ 'three/webgpu');
 
             const adapter = await navigator.gpu.requestAdapter();
             if (!adapter) {

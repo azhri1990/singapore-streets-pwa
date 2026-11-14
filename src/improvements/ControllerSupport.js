@@ -85,8 +85,8 @@ export class ControllerSupport {
         
         try {
             this.hidDevice = await navigator.hid.requestDevice({
-                vendorId: 0xps5, // Sony ID
-                productId: 0x0904, // DualSense
+                vendorId: 0x054c, // Sony vendor ID (1356)
+                productId: 0x0ce6, // DualSense USB product ID (also try 0x0bce for Bluetooth)
             })
             
             // Verify it's a DualSense
