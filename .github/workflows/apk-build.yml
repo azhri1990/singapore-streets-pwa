@@ -10,6 +10,8 @@ jobs:
   build-apk:
     name: Build APK (Bubblewrap TWA builder)
     runs-on: ubuntu-latest
+    env:
+      HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
 
     steps:
       - name: Checkout repository
@@ -228,7 +230,7 @@ jobs:
           ls -la twa/app-release-signed.apk || ls -la twa/app/build/outputs/apk/release/*.apk || exit 1
 
       - name: Export signing key (first-run only)
-        if: ${{ !secrets.KEYSTORE_BASE64 }}
+        if: env.HAS_KEYSTORE != 'true'
         run: |
           # On the first run (no persisted keystore secret) export the generated key
           # so it can be downloaded, base64-encoded, and stored as KEYSTORE_BASE64.
@@ -247,7 +249,7 @@ jobs:
           retention-days: 30
 
       - name: Upload keystore artifact (first-run only)
-        if: ${{ !secrets.KEYSTORE_BASE64 }}
+        if: env.HAS_KEYSTORE != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: android-keystore-export
