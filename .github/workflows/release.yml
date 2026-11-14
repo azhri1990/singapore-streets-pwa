@@ -60,8 +60,9 @@ jobs:
               else if (type === 'fix') patch++;
               else if (type === 'breaking') major++;
             }
-            const v = [major, minor, patch].map(n => n === 0 ? '' : n).join('.');
-            console.log('VERSION=' + (v || '1.0.0'));
+            const v = [major, minor, patch].map(n => n === 0 ? 0 : n).join('.');
+            const version = v === '0.0.0' ? '1.0.0' : v;
+            console.log('VERSION=' + version);
           " > /tmp/version.txt
           cat /tmp/version.txt
           source /tmp/version.txt
