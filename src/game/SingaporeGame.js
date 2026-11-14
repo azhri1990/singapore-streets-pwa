@@ -125,7 +125,6 @@ export class SingaporeGame {
         this.progression = new ProgressionSystem(this);
         this.audioManager = new AudioManager();
         this.audioManager.setGame(this);
-        this.audioManager.initializeAudio();
         console.log('[SingaporeGame] AudioManager initialized');
         this.spatialHash = new SpatialHashGrid(10);
         this.eventBus = new EventBus();

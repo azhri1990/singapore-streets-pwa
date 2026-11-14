@@ -17,6 +17,7 @@ export class AudioManager {
         this.currentStation = null;
         this.voiceSynthesizer = null;
         this.voiceProfiles = SingaporeVoiceProfiles;
+        this.engineSounds = new Map(); // vehicleId -> { osc, stop, updateRPM }
         this.init();
     }
 
@@ -56,7 +57,7 @@ export class AudioManager {
                     'Singtel - The future is now, connect with Singtel 5G',
                     'DBS Bank - Live more, bank less with DBS digibank',
                     'Grab - Book your ride in seconds with Grab',
-                    'McDonald\'s Singapore - I\'m lovin\' it, McDonald\'s',
+                    "McDonald's Singapore - I'm lovin' it, McDonald's",
                     'Starbucks Singapore - Your daily coffee ritual'
                 ],
                 trafficUpdates: [
@@ -139,19 +140,19 @@ export class AudioManager {
                 genre: 'Gold Classics',
                 dj: 'Class 95 Morning',
                 songs: [
-                    { artist: 'Elvis Presley', title: 'Can\'t Help Falling in Love', year: 1961 },
+                    { artist: 'Elvis Presley', title: "Can't Help Falling in Love", year: 1961 },
                     { artist: 'Frank Sinatra', title: 'My Way', year: 1969 },
                     { artist: 'The Beatles', title: 'Yesterday', year: 1965 }
                 ],
                 commercials: [
                     'Great Eastern - Protect what matters most',
                     'NTUC Income - Secure your family\'s future',
-    'DBS Treasures - Wealth management for the discerning',
+                    'DBS Treasures - Wealth management for the discerning',
                     'Grab - Your premier ride experience'
                 ],
                 trafficUpdates: [
                     'Orchard Road moderately trafficked',
-        'CBD expressway flowing smoothly',
+                    'CBD expressway flowing smoothly',
                     'Marina Bay link clear'
                 ],
                 news: [
@@ -168,7 +169,7 @@ export class AudioManager {
                 songs: [
                     { artist: 'Billie Eilish', title: 'Bad Guy', year: 2019 },
                     { artist: 'Olivia Rodrigo', title: 'drivers license', year: 2021 },
-                    { artist: 'Dua Lipa', title: 'Don\'t Start Now', year: 2020 }
+                    { artist: 'Dua Lipa', title: "Don't Start Now", year: 2020 }
                 ],
                 commercials: [
                     'SILA - Selamat datang di SILA',
@@ -273,8 +274,8 @@ export class AudioManager {
 
     // ============ ENGINE SOUNDS ============
 
-    createEngineSound(vehicleType, position = [0, 0, 0]) {
-        if (!this.audioContext) return null;
+    createEngineSound(vehicleId, vehicleType = 'singaporeTaxi', position = [0, 0, 0]) {
+        if (!this.audioContext || !this.spatialAudio) return null;
 
         const config = {
             'singaporeTaxi': { baseFreq: 80, rpm: 2500, gain: 0.1 },
@@ -283,27 +284,21 @@ export class AudioManager {
             'singaporePolice': { baseFreq: 90, rpm: 2800, gain: 0.15 }
         }[vehicleType] || { baseFreq: 75, rpm: 2400, gain: 0.1 };
 
-        // Register as a spatial sound source
-        const source = this.spatialAudio?.registerSound(`engine_${vehicleType}`, {
+        // Register as a spatial sound source so it pans in 3D
+        const spatialSource = this.spatialAudio.registerSound(vehicleId, {
             position,
             volume: config.gain,
             type: 'engine',
             refDistance: 10,
             maxDistance: 100
-        }) || {
-            gain: this.audioContext.createGain(),
-            panner: this.audioContext.createPanner(),
-            position,
-            isPlaying: false
-        };
+        });
 
-        source.panner.positionX.setValueAtTime(position[0], this.audioContext.currentTime);
-        source.panner.positionY.setValueAtTime(position[1], this.audioContext.currentTime);
-        source.panner.positionZ.setValueAtTime(position[2], this.audioContext.currentTime);
+        if (!spatialSource) return null;
 
+        // Procedural engine oscillator chain: osc -> filter -> gain -> panner -> compressor
         const osc = this.audioContext.createOscillator();
-        const gainNode = source.gain;
         const filter = this.audioContext.createBiquadFilter();
+        const gainNode = this.audioContext.createGain();
 
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(config.baseFreq, this.audioContext.currentTime);
@@ -314,36 +309,34 @@ export class AudioManager {
         osc.connect(filter);
         filter.connect(gainNode);
         gainNode.gain.setValueAtTime(config.gain, this.audioContext.currentTime);
+        gainNode.connect(spatialSource.panner);
         gainNode.connect(this.audioContext.destination);
 
         // RPM-based frequency sweep
-        osc.rpmPercent = 0;
-        osc.updateRPM = (rpmPercent) => {
-            osc.rpmPercent = rpmPercent;
-            const ratio = Math.max(0, Math.min(1, rpmPercent));
+        let rpmPercent = 0;
+        const updateRPM = (rp) => {
+            rpmPercent = Math.max(0, Math.min(1, rp));
+            const ratio = rpmPercent;
             osc.frequency.setValueAtTime(config.baseFreq * (0.8 + ratio * 2), this.audioContext.currentTime);
             filter.frequency.setValueAtTime(config.baseFreq * 4 * ratio, this.audioContext.currentTime);
             gainNode.gain.setValueAtTime(0.1 + ratio * 0.4, this.audioContext.currentTime);
         };
 
         osc.start();
-
-        source.isPlaying = true;
-        return { source, osc, updateRPM: osc.updateRPM };
+        this.engineSounds.set(vehicleId, { osc, filter, gainNode, stop: osc.stop.bind(osc), updateRPM });
+        return { osc, updateRPM };
     }
 
     setEngineRPM(vehicleId, rpmPercent) {
-        const source = this.spatialAudio?.soundSources.get(vehicleId);
-        if (source?.osc?.updateRPM) {
-            source.osc.updateRPM(rpmPercent);
-        }
+        const s = this.engineSounds.get(vehicleId);
+        if (s && s.updateRPM) s.updateRPM(rpmPercent);
     }
 
     stopEngineSound(vehicleId) {
-        const source = this.spatialAudio?.soundSources.get(vehicleId);
-        if (source?.isPlaying) {
-            try { source.osc.stop?.(); } catch (e) {}
-            source.isPlaying = false;
+        const s = this.engineSounds.get(vehicleId);
+        if (s) {
+            try { s.stop(this.audioContext.currentTime + 0.5); } catch (e) {}
+            this.engineSounds.delete(vehicleId);
         }
         this.spatialAudio?.unregisterSound(vehicleId);
     }
@@ -351,17 +344,19 @@ export class AudioManager {
     // ============ HAWKER AMBIENCE ============
 
     playHawkerAmbience(position = [0, 0, 0]) {
-        if (!this.audioContext) return;
+        if (!this.audioContext || !this.spatialAudio) return;
 
-        // Register spatial ambient sound
-        const source = this.spatialAudio?.registerSound('hawker_ambience', {
+        // Register as a spatial ambient source
+        const source = this.spatialAudio.registerSound('hawker_ambience', {
             position,
             volume: 0.08,
             type: 'ambient',
-            loop: true
-        }) || { gain: this.audioContext.createGain(), isPlaying: false };
+            refDistance: 15,
+            maxDistance: 150
+        });
+        if (!source) return;
 
-        // Generate layered hawker noise
+        // Generate layered hawker noise buffer
         const bufferSize = this.audioContext.sampleRate * 0.5;
         const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
         const data = buffer.getChannelData(0);
@@ -378,15 +373,10 @@ export class AudioManager {
         filter.frequency.value = 400;
         filter.Q.value = 0.7;
 
-        const gain = source.gain;
-        gain.gain.setValueAtTime(0.08, this.audioContext.currentTime);
-
         noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.audioContext.destination);
+        filter.connect(source.panner);
+        filter.connect(this.audioContext.destination);
         noise.start();
-
-        source.isPlaying = true;
     }
 
     stopHawkerAmbience() {
@@ -396,95 +386,96 @@ export class AudioManager {
     // ============ POLICE SIRENS ============
 
     playPoliceSiren(position = [0, 0, 0]) {
-        if (!this.audioContext) return;
+        if (!this.audioContext || !this.spatialAudio) return;
 
-        const source = this.spatialAudio?.registerSound('police_siren', {
+        // Register as spatial source so siren pans with camera movement
+        const source = this.spatialAudio.registerSound('police_siren', {
             position,
             volume: 0.4,
             type: 'siren',
-            looping: true
-        }) || { gain: this.audioContext.createGain(), isPlaying: false };
+            refDistance: 15,
+            maxDistance: 120
+        });
+        if (!source) return;
 
-        // Alternating siren pattern
+        source.panner.positionX.setValueAtTime(position[0], this.audioContext.currentTime);
+        source.panner.positionY.setValueAtTime(position[1], this.audioContext.currentTime);
+        source.panner.positionZ.setValueAtTime(position[2], this.audioContext.currentTime);
+
         const now = this.audioContext.currentTime;
         const freq1 = 500;
         const freq2 = 1000;
 
-        source.panner.positionX.setValueAtTime(position[0], now);
-        source.panner.positionY.setValueAtTime(position[1], now);
-        source.panner.positionZ.setValueAtTime(position[2], now);
-
-        // Siren pattern: alternating 500Hz/1000Hz
+        // Alternating siren pattern: 500Hz / 1000Hz every 0.5s
         const pattern = [
             [freq1, 0], [freq2, 0.5], [freq1, 1.0], [freq2, 1.5], [freq1, 2.0]
         ];
 
         pattern.forEach(([freq, t]) => {
-            source.panner.gain.setValueAtTime(0.4, now + t);
-            // Create oscillator at this freq
             const osc = this.audioContext.createOscillator();
             osc.type = 'square';
             osc.frequency.setValueAtTime(freq, now + t);
-            osc.connect(source.gain);
+            osc.connect(source.panner);
+            osc.connect(this.audioContext.destination);
             osc.start(now + t);
             osc.stop(now + t + 0.1);
         });
 
-        // Keep playing for 2.1s then fade out
-        source.isPlaying = true;
-        setTimeout(() => {
-            try { source.gain.gain.setTargetAtTime(0, this.audioContext.currentTime + 2, 0.5); } catch (e) {}
-            this.spatialAudio?.unregisterSound('police_siren');
-        }, 2500);
+        // Fade out gain then unregister
+        source.gain.gain.setTargetAtTime(0, now + 2, 0.5);
+        setTimeout(() => this.spatialAudio?.unregisterSound('police_siren'), 2500);
     }
 
     // ============ COLLISION SOUNDS ============
 
     playCollision(impactForce, position = [0, 0, 0]) {
-        if (!this.audioContext) return;
+        if (!this.audioContext || !this.spatialAudio) return;
 
-        const source = this.spatialAudio?.registerSound('collision', {
+        const source = this.spatialAudio.registerSound('collision', {
             position,
             volume: Math.min(0.5, impactForce * 0.05),
             type: 'impact',
-            looping: false
-        }) || { gain: this.audioContext.createGain(), isPlaying: false };
+            refDistance: 8,
+            maxDistance: 80
+        });
+        if (!source) return;
 
         const now = this.audioContext.currentTime;
-
         source.panner.positionX.setValueAtTime(position[0], now);
         source.panner.positionY.setValueAtTime(position[1], now);
         source.panner.positionZ.setValueAtTime(position[2], now);
 
         const osc = this.audioContext.createOscillator();
-        const gainNode = source.gain;
+        const gainNode = this.audioContext.createGain();
 
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(Math.max(20, 200 - impactForce * 10), now);
         gainNode.gain.setValueAtTime(Math.min(0.5, impactForce * 0.05), now);
 
         osc.connect(gainNode);
-        gainNode.connect(this.compressor);
+        gainNode.connect(source.panner);
+        gainNode.connect(this.audioContext.destination);
         gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
 
         osc.start(now);
         osc.stop(now + 0.3);
 
-        source.isPlaying = true;
         setTimeout(() => this.spatialAudio?.unregisterSound('collision'), 400);
     }
 
     // ============ HORN ============
 
     playHorn(position = [0, 0, 0]) {
-        if (!this.audioContext) return;
+        if (!this.audioContext || !this.spatialAudio) return;
 
-        const source = this.spatialAudio?.registerSound('horn', {
+        const source = this.spatialAudio.registerSound('horn', {
             position,
             volume: 0.3,
             type: 'horn',
-            looping: false
-        }) || { gain: this.audioContext.createGain(), isPlaying: false };
+            refDistance: 10,
+            maxDistance: 100
+        });
+        if (!source) return;
 
         const now = this.audioContext.currentTime;
         source.panner.positionX.setValueAtTime(position[0], now);
@@ -492,19 +483,19 @@ export class AudioManager {
         source.panner.positionZ.setValueAtTime(position[2], now);
 
         const osc = this.audioContext.createOscillator();
-        const gainNode = source.gain;
+        const gainNode = this.audioContext.createGain();
 
         osc.type = 'square';
         osc.frequency.setValueAtTime(440, now);
         gainNode.gain.setValueAtTime(0.3, now);
 
         osc.connect(gainNode);
-        gainNode.connect(this.compressor);
+        gainNode.connect(source.panner);
+        gainNode.connect(this.audioContext.destination);
 
         osc.start(now);
         osc.stop(now + 0.5);
 
-        source.isPlaying = true;
         setTimeout(() => this.spatialAudio?.unregisterSound('horn'), 700);
     }
 
@@ -516,23 +507,19 @@ export class AudioManager {
         const station = this.radioStations[stationId];
 
         // Play tuning chime
-        if (this.audioContext) {
-            const osc = this.audioContext.createOscillator();
-            const gain = this.audioContext.createGain();
-            osc.type = 'sine';
-            osc.frequency.value = 880;
-            gain.gain.value = 0.03;
-            osc.connect(gain);
-            gain.connect(this.audioContext.destination);
-            osc.start();
-            osc.stop(this.audioContext.currentTime + 0.15);
-        }
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        gain.gain.value = 0.03;
+        osc.connect(gain);
+        gain.connect(this.audioContext.destination);
+        osc.start();
+        osc.stop(this.audioContext.currentTime + 0.15);
 
         this.currentStation = stationId;
         console.log(`Tuned to ${station.name} - ${station.frequency}`);
 
-        // In a full implementation, would stream audio content
-        // For now, display station info via UI
         return station;
     }
 
@@ -553,7 +540,7 @@ export class AudioManager {
                 'Eh, you eat already or not?',
                 'Wah, so expensive one!',
                 'Cannot lah, too far.',
-                'Don\'t worry lah, I help you.',
+                "Don't worry lah, I help you.",
                 'Aiyah, why like that?',
                 'Can or not?',
                 'No need lah, I can do myself.',
@@ -585,7 +572,7 @@ export class AudioManager {
                 'Aiyoh, what happened?',
                 'No problem lah, can do.',
                 'Very good ah!',
-                'Don\'t worry da, I help you.',
+                "Don't worry da, I help you.",
                 'What to do? No choice.',
                 'So expensive lah!',
                 'Come, let\'s go eat.',
