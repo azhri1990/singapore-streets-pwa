@@ -1,29 +1,7 @@
 import { defineConfig } from 'vite'
-import { visualizer } from 'rollup-plugin-visualizer'
-import { compression } from 'vite-plugin-compression'
 
 export default defineConfig({
-  plugins: [
-    compression({
-      algorithm: 'gzip',
-      ext: '.gz',
-      threshold: 8192,
-      verbose: true,
-    }),
-    compression({
-      algorithm: 'brotliCompress',
-      ext: '.br',
-      threshold: 8192,
-      verbose: true,
-    }),
-    visualizer({
-      filename: './dist/visualizer.html',
-      open: false,
-      gzipSize: true,
-      brotliSize: true,
-      template: 'treemap',
-    }),
-  ],
+  plugins: [],
   build: {
     target: 'es2022',
     minify: 'esbuild',
@@ -32,7 +10,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          // Split Three.js from game logic for better caching
           three: ['three'],
           physics: ['cannon-es'],
           animation: ['gsap'],
@@ -46,7 +23,7 @@ export default defineConfig({
           ],
           combat: [
             './src/combat/CombatSystem.js',
-            './src/combat/CombatStylesSystem.js',
+            './src/systems/CombatStylesSystem.js',
           ],
           systems: [
             './src/systems/EnhancedWantedSystem.js',
@@ -64,7 +41,7 @@ export default defineConfig({
         entryFileNames: 'assets/[name]-[hash].js',
       },
     },
-    chunkSizeWarningLimit: 1000, // 1000 KB per chunk
+    chunkSizeWarningLimit: 1000,
     reportCompressedSize: true,
   },
   optimizeDeps: {
@@ -78,11 +55,5 @@ export default defineConfig({
   preview: {
     port: 4173,
     strictPort: true,
-  },
-  resolve: {
-    alias: {
-      // Ensure consistent module resolution
-      'three/': 'node_modules/three/',
-    },
   },
 })
