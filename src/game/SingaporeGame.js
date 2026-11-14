@@ -30,6 +30,7 @@ import { AIGameMaster, AITrafficSystem, AIMissionDirector } from '../improvement
 import { AIChatUI } from '../improvements/AIChatUI.js';
 import { EnhancedVehiclePhysics } from '../improvements/EnhancedVehiclePhysics.js';
 import { NPCPathfinding } from '../improvements/NPCPathfinding.js';
+import { BehaviorTrees } from '../improvements/BehaviorTree.js';
 import { AudioDSP } from '../improvements/AudioDSP.js';
 import { ModelLODManager } from '../improvements/ModelLODManager.js';
 import { ParticleEffectsSystem } from '../improvements/ParticleEffects.js';
@@ -123,6 +124,7 @@ export class SingaporeGame {
         this.progression = new ProgressionSystem(this);
         this.progression = new ProgressionSystem(this);
         this.audioManager = new AudioManager();
+        this.audioManager.setGame(this);
         this.audioManager.initializeAudio();
         console.log('[SingaporeGame] AudioManager initialized');
         this.spatialHash = new SpatialHashGrid(10);
@@ -287,6 +289,11 @@ export class SingaporeGame {
         this.actionInput = new ActionInput(this);
         this.arcadeVehicleController = new ArcadeVehicleController(this);
         this.drivingHUD = new DrivingHUD(this);
+        this.enhancedVehiclePhysics = new EnhancedVehiclePhysics(this.world);
+        this.npcPathfinding = new NPCPathfinding(100, 100, 4);
+        this.behaviorTrees = BehaviorTrees;
+        this.behaviorTree = BehaviorTrees.traffic_driving();
+        this.behaviorTreeNPC = BehaviorTrees.hawker_cooking();
         window.game = this; // Global access for debugging
         
         // Add vehicles
@@ -377,25 +384,43 @@ export class SingaporeGame {
     }
 
     createSingaporeVehicles() {
+        // Also create Three.js meshes for visual representation
+        const vehicleSpecs = {
+            'singaporeTaxi': { mass: 1450, maxSpeed: 80, color: 0x3a7c },
+            'cityBus': { mass: 12000, maxSpeed: 60, color: 0xff9900 },
+            'mpv': { mass: 1800, maxSpeed: 95, color: 0xff6600 },
+            'singaporePolice': { mass: 1600, maxSpeed: 90, color: 0x0055ff }
+        };
+        
         const vehicles = [
-            { pos: [5, 0.5, 5], type: 'singaporeTaxi' },
-            { pos: [-10, 0.5, -5], type: 'singaporePolice' },
-            { pos: [15, 0.5, -15], type: 'cityBus' },
-            { pos: [25, 0.5, 10], type: 'mpv' }
+            { pos: [5, 0.5, 5], type: 'singaporeTaxi', specKey: 'singaporeTaxi' },
+            { pos: [-10, 0.5, -5], type: 'singaporePolice', specKey: 'singaporePolice' },
+            { pos: [15, 0.5, -15], type: 'cityBus', specKey: 'cityBus' },
+            { pos: [25, 0.5, 10], type: 'mpv', specKey: 'mpv' }
         ];
         
         vehicles.forEach(v => {
+            // Create physics vehicle
+            const spec = vehicleSpecs[v.specKey];
+            const physicsVehicle = this.enhancedVehiclePhysics.createVehicle(v.specKey || 'taxi', 
+                new THREE.Vector3(...v.pos), new THREE.Euler());
+            
+            // Create Three.js visual mesh
             const vehicle = SingaporeVehicleFactory.createVehicle(v.type);
             vehicle.position.set(...v.pos);
             vehicle.userData.type = 'Vehicle_' + v.type;
             vehicle.userData.health = 100;
+            vehicle.userData.spec = spec;
+            vehicle.userData.physicsId = physicsVehicle.id;
             this.scene.add(vehicle);
             
+            // Add to traffic system
             this.aiTrafficSystem.vehicles.push({
                 ...vehicle.userData,
                 mesh: vehicle,
                 type: v.type,
-                maxSpeed: vehicle.userData.spec.maxSpeed
+                maxSpeed: spec.maxSpeed,
+                physicsId: physicsVehicle.id
             });
         });
     }
@@ -552,8 +577,7 @@ export class SingaporeGame {
         nextIdx = (nextIdx + 1) % stations.length;
         const stationId = stations[nextIdx];
 
-        const station = this.audioManager.radioStations[stationId];
-        this.audioManager.toggleRadio(stationId);
+        const station = this.audioManager.playRadioStation(stationId);
         this.showNotification('📻 RADIO', `Tuned to ${station.name} (${station.frequency})`);
     }
 
@@ -932,6 +956,9 @@ export class SingaporeGame {
         if (this.arcadeVehicleController) {
             this.arcadeVehicleController.update(cappedDelta);
         }
+        if (this.enhancedVehiclePhysics) {
+            this.enhancedVehiclePhysics.update(cappedDelta);
+        }
         if (this.drivingHUD) {
             this.drivingHUD.update();
         }
@@ -1078,11 +1105,25 @@ export class SingaporeGame {
             this.aiMissionDirector.checkAndGenerateMissions(this.player);
         }
         
+        // Update spatial audio listener position (camera/player)
+        if (this.audioManager?.spatialAudio && this.player) {
+            const pos = this.player.position;
+            const forward = new THREE.Vector3();
+            this.camera.getWorldDirection(forward);
+            this.audioManager.spatialAudio.updateListener(
+                [pos.x, pos.y, pos.z],
+                [forward.x, forward.y, forward.z]
+            );
+        }
+
         // Update audio based on wanted level
         if (this.wantedSystem && this.audioManager) {
             const stars = this.wantedSystem.getStars();
             if (stars >= 1) {
-                this.audioManager.playPoliceSirens();
+                const playerPos = this.player?.position;
+                if (playerPos) {
+                    this.audioManager.playPoliceSiren([playerPos.x, playerPos.y, playerPos.z]);
+                }
             }
         }
         
